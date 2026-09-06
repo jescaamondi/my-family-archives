@@ -1,0 +1,277 @@
+/* FAMILY ARCHIVE — BALANCED HERITAGE + MODERN VISUAL SYSTEM */
+:root {
+  --accent: #76533b;
+  --accent-dark: #5d3f2c;
+  --accent-soft: #eee4da;
+  --ink: #2f2924;
+  --ink-soft: #6f645b;
+  --muted: #978d84;
+  --paper: #f7f4ef;
+  --paper-deep: #eee8e0;
+  --surface: #fffdf9;
+  --line: #e3ddd5;
+  --line-dark: #d2c7bc;
+  --sage: #69786a;
+  --sage-soft: #e4ebe4;
+  --terracotta: #a06b55;
+  --shadow-soft: 0 12px 36px rgba(56, 43, 32, .065);
+  --shadow-card: 0 18px 48px rgba(56, 43, 32, .09);
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(222, 207, 190, .42), transparent 28%),
+    radial-gradient(circle at 90% 18%, rgba(231, 235, 226, .42), transparent 25%),
+    var(--paper);
+  color: var(--ink);
+}
+
+.stage {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.42), transparent 22%),
+    var(--paper);
+}
+
+/* Typography: editorial headings, restrained UI text. */
+.page-heading h1,
+.family-heading h1,
+.family-members-heading h1,
+.milestones-heading h1,
+.stories-heading h1,
+.add-memory-title h1,
+.gallery-header h1,
+.family-tree-heading h1 {
+  color: var(--ink);
+}
+
+.subtitle { color: var(--ink-soft); }
+.eyebrow { color: var(--terracotta); }
+
+/* Navigation feels modern; brand keeps the heirloom character. */
+.side-nav {
+  background: rgba(251, 249, 245, .92);
+  border-right-color: rgba(210, 199, 188, .78);
+  box-shadow: 10px 0 36px rgba(52, 40, 29, .035);
+}
+.side-nav nav button { color: #746a61; }
+.side-nav nav button:hover { background: #f0ebe4; }
+.side-nav nav button.active {
+  background: var(--ink);
+  box-shadow: 0 9px 22px rgba(45, 38, 32, .15);
+}
+.add-btn { box-shadow: 0 9px 22px rgba(88, 62, 43, .12); }
+
+/* Buttons use one quiet family identity rather than many competing accents. */
+.btn-primary,
+.story-add-button,
+.milestone-add-button,
+.add-member-button,
+.gallery-upload-button,
+.gallery-empty-button,
+.gallery-save,
+.story-save,
+.milestone-save {
+  background: linear-gradient(135deg, #76533b, #62432f);
+  box-shadow: 0 9px 22px rgba(90, 62, 43, .13);
+}
+
+.btn-primary:hover,
+.story-add-button:hover,
+.milestone-add-button:hover,
+.add-member-button:hover,
+.gallery-upload-button:hover,
+.gallery-empty-button:hover,
+.gallery-save:hover,
+.story-save:hover,
+.milestone-save:hover {
+  background: linear-gradient(135deg, #846049, #6a4832);
+}
+
+.btn-secondary { background: rgba(255,253,249,.8); }
+
+/* Home: cinematic feature + clean modern supporting grid. */
+.home-hero {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 44px;
+}
+.home-hero h1 { max-width: 900px; }
+.hero-mark {
+  border-color: var(--line-dark);
+  background: rgba(255,253,249,.72);
+}
+.featured-memory {
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+.featured-copy {
+  background: linear-gradient(145deg, #f0e7de, #e8ded3);
+}
+.archive-stats {
+  border-color: var(--line);
+  background: rgba(255,253,249,.56);
+}
+.home-section { border-top-color: var(--line); }
+.home-photo-card { box-shadow: var(--shadow-soft); }
+
+/* Cards share a consistent surface, while images stay dominant. */
+.gallery-card,
+.story-card,
+.milestone-board-card,
+.empty-state,
+.gallery-empty,
+.home-empty {
+  border-color: var(--line);
+}
+
+.gallery-card,
+.milestone-board-card {
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+.gallery-card:hover,
+.milestone-board-card:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.gallery-grid { gap: 16px; }
+.gallery-card { border-radius: 18px; }
+.gallery-card-info {
+  background: linear-gradient(180deg, transparent, rgba(30,24,20,.72));
+}
+
+/* Stories: editorial reading experience. */
+.stories-heading { border-bottom-color: var(--line); }
+.story-card {
+  border-bottom-color: var(--line);
+  transition: padding .2s ease;
+}
+.story-image {
+  border: 1px solid rgba(210,199,188,.65);
+  box-shadow: var(--shadow-soft);
+}
+.story-main { max-width: 780px; }
+.story-preview { color: var(--ink-soft); }
+.story-people span,
+.milestone-people span,
+.person-picker button,
+.gallery-person-options button {
+  border: 1px solid #d9d0c6;
+  background: #f6f1eb;
+  color: #695b4f;
+}
+.story-comments,
+.milestone-comments {
+  background: #faf7f2;
+  border-color: var(--line);
+}
+.comment { border-bottom-color: var(--line); }
+
+/* Milestones: modern inspiration board, with warmer content styling. */
+.milestone-board {
+  gap: 18px;
+}
+.milestone-board-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.milestone-inspiration { background: #eee8e1; }
+.milestone-copy { background: rgba(255,253,249,.98); }
+.milestone-copy h2 {
+  color: var(--ink);
+  letter-spacing: -.035em;
+}
+.milestone-status {
+  border-radius: 999px;
+  background: var(--sage-soft);
+  color: #526154;
+}
+.milestone-help {
+  color: var(--sage);
+}
+.milestone-actions button {
+  border-color: var(--line);
+  background: #faf7f2;
+}
+
+/* Family tree: organic canvas, but crisp member cards. */
+.family-tree-page {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.9), transparent 35%),
+    linear-gradient(180deg, #f3eee7, #eee8e0);
+}
+.family-tree-canvas {
+  border: 1px solid var(--line);
+  background: rgba(255,253,249,.5);
+  box-shadow: var(--shadow-card);
+}
+.tree-person-card {
+  border-color: var(--line);
+  box-shadow: 0 10px 28px rgba(55, 42, 31, .065);
+}
+.tree-person-card:hover {
+  box-shadow: 0 16px 34px rgba(55, 42, 31, .11);
+}
+.person-photo-frame { border-color: #d7cbc0; }
+.tree-canvas-note { color: var(--muted); }
+
+/* Modals: calm, spacious and app-like rather than decorative. */
+.gallery-upload-modal,
+.story-modal,
+.milestone-modal,
+.tree-modal,
+.member-profile-panel {
+  background: rgba(255,253,249,.98);
+  border: 1px solid var(--line);
+  box-shadow: 0 35px 90px rgba(38, 29, 21, .2);
+}
+.gallery-modal-backdrop,
+.story-modal-backdrop,
+.milestone-modal-backdrop,
+.tree-modal-backdrop {
+  background: rgba(42, 34, 27, .44);
+  backdrop-filter: blur(8px);
+}
+
+input,
+textarea,
+select {
+  background: rgba(255,253,249,.9);
+  border-color: var(--line-dark);
+}
+input:hover,
+textarea:hover,
+select:hover { border-color: #bfae9e; }
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(118,83,59,.09);
+}
+
+/* Empty states feel intentional, not like unfinished screens. */
+.empty-state,
+.gallery-empty,
+.home-empty {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(239,230,219,.58), transparent 45%),
+    rgba(255,253,249,.78);
+  box-shadow: var(--shadow-soft);
+}
+.empty-icon,
+.gallery-empty-icon { opacity: .8; }
+
+/* Accessibility / motion restraint. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .home-hero { padding-bottom: 30px; }
+  .featured-memory { border-radius: 16px; }
+  .milestone-board { gap: 14px; }
+  .story-card { padding: 26px 0; }
+}

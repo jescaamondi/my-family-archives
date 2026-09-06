@@ -1,0 +1,21 @@
+:root {
+  --paper: #fbf8f4;
+  --paper-deep: #f2eae2;
+  --surface: #fffdfb;
+  --ink: #2d2926;
+  --ink-soft: #6b3305;
+  --muted: #8b7f74;
+  --accent: #642b00e7;
+  --accent-dark: #5c3012;
+  --accent-soft: #eee2d7;
+  --line: #e4dbd1;
+  --line-dark: #d1c3b5;
+  --success: #058e28;
+  --danger: #7c160c;
+  --sidebar-width: 248px;
+  --content-max: 1240px;
+  --page-padding: 40px;
+  --radius: 16px;
+  --shadow: 0 14px 40px rgba(60, 44, 31, 0.07);
+  --ease: 0.2s ease;
+}

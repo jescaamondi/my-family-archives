@@ -1,0 +1,311 @@
+.add-memory-header {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 36px;
+  align-items: end;
+  margin-bottom: 42px;
+}
+.add-memory-title p {
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+}
+.memory-note {
+  display: flex;
+  gap: 13px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: var(--paper-deep);
+}
+.memory-note-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+}
+.memory-note strong {
+  font-size: 0.82rem;
+}
+.memory-note p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.73rem;
+  line-height: 1.5;
+}
+.memory-form {
+  border-top: 1px solid var(--line);
+}
+.memory-section {
+  padding: 34px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.memory-section-heading {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 15px;
+  margin-bottom: 26px;
+}
+.memory-section-heading > span {
+  color: var(--accent);
+  font:
+    500 1.2rem "Playfair Display",
+    Georgia,
+    serif;
+}
+.memory-section-heading h2 {
+  margin: 0;
+  font:
+    500 1.65rem "Playfair Display",
+    Georgia,
+    serif;
+}
+.memory-section-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.field-hint {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.author-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.author-avatar {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: "Playfair Display", Georgia, serif;
+}
+.author-field input {
+  background: var(--paper-deep);
+}
+.memory-upload {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  padding: 30px;
+  border: 1px dashed var(--line-dark);
+  border-radius: 16px;
+  background: #f8f3ed;
+  cursor: pointer;
+  text-align: center;
+}
+.memory-upload.dragging,
+.memory-upload:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.memory-upload input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.upload-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.5rem;
+}
+.memory-upload strong {
+  font-size: 0.9rem;
+}
+.memory-upload span {
+  margin-top: 5px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.memory-upload small {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+.selected-media {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.media-preview {
+  aspect-ratio: 1.25;
+  overflow: hidden;
+  background: var(--paper-deep);
+}
+.media-preview img,
+.media-preview video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.media-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.media-details strong {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.media-details span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.media-details button {
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 0.73rem;
+  font-weight: 700;
+}
+.memory-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.option-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.option-card input {
+  position: absolute;
+  opacity: 0;
+}
+.option-check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-dark);
+  border-radius: 7px;
+  color: transparent;
+}
+.option-card input:checked ~ .option-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.option-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.option-card strong {
+  display: block;
+  font-size: 0.82rem;
+}
+.option-card small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.form-error {
+  margin-top: 22px;
+  padding: 12px 14px;
+  border: 1px solid #e4c1bc;
+  border-radius: 11px;
+  background: #f5e5e2;
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+.memory-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 24px;
+}
+@media (max-width: 760px) {
+  .add-memory-header {
+    grid-template-columns: 1fr;
+  }
+  .memory-options {
+    grid-template-columns: 1fr;
+  }
+  .selected-media {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 500px) {
+  .memory-section-heading {
+    grid-template-columns: 30px 1fr;
+    gap: 10px;
+  }
+  .memory-section-heading h2 {
+    font-size: 1.45rem;
+  }
+  .memory-actions {
+    flex-direction: column-reverse;
+  }
+  .memory-actions .btn {
+    width: 100%;
+  }
+}
+.memory-error {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 22px;
+  padding: 12px 14px;
+  border: 1px solid #e4c1bc;
+  border-radius: 11px;
+  background: #f5e5e2;
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+.memory-actions .btn-primary,
+.memory-actions .btn-secondary {
+  min-height: 44px;
+  padding: 0 17px;
+  border-radius: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.memory-actions .btn-primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.memory-actions .btn-secondary {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}

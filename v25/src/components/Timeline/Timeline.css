@@ -1,0 +1,105 @@
+.timeline {
+  position: relative;
+  padding: 8px 0 8px 92px;
+}
+.timeline:before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+.timeline-item {
+  position: relative;
+  padding-bottom: 36px;
+}
+.timeline-marker {
+  position: absolute;
+  left: -92px;
+  top: 0;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.highlight .timeline-marker {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.timeline-date {
+  margin-bottom: 9px;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.timeline-content {
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.timeline-content > span {
+  color: var(--muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.timeline-content h2 {
+  margin: 8px 0;
+  font:
+    500 1.65rem "Playfair Display",
+    Georgia,
+    serif;
+}
+.timeline-content p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 15px;
+}
+.tag {
+  padding: 5px 10px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.67rem;
+  font-weight: 700;
+}
+@media (max-width: 600px) {
+  .timeline {
+    padding-left: 44px;
+  }
+  .timeline:before {
+    left: 13px;
+  }
+  .timeline-marker {
+    left: -44px;
+    width: 28px;
+    height: 28px;
+    font-size: 0.58rem;
+  }
+  .timeline-content {
+    padding: 18px;
+  }
+  .timeline-content h2 {
+    font-size: 1.35rem;
+  }
+}

@@ -1,0 +1,144 @@
+.app-shell {
+  min-height: 100vh;
+}
+.stage {
+  min-height: 100vh;
+  margin-left: var(--sidebar-width);
+  background: var(--paper);
+}
+.page {
+  width: min(100%, var(--content-max));
+  margin: auto;
+  padding: 48px var(--page-padding) 72px;
+}
+.page-heading {
+  margin-bottom: 34px;
+}
+.page-heading h1,
+.family-heading h1,
+.family-members-heading h1,
+.milestones-heading h1,
+.stories-heading h1,
+.add-memory-title h1 {
+  margin: 0;
+  font:
+    600 clamp(2.8rem, 6vw, 4.8rem)/0.98 "Playfair Display",
+    Georgia,
+    serif;
+  letter-spacing: -0.045em;
+}
+.subtitle {
+  max-width: 700px;
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.eyebrow {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.empty-state {
+  padding: 64px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.empty-icon {
+  margin-bottom: 12px;
+  font-size: 2rem;
+}
+.empty-state h3 {
+  margin: 0 0 8px;
+}
+.empty-state p {
+  max-width: 480px;
+  margin: auto;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all var(--ease);
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(128, 96, 71, 0.16);
+}
+.btn-primary:hover {
+  background: var(--accent-dark);
+}
+.btn-secondary {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, #f0e1d3, transparent 38%), var(--paper);
+}
+.auth-card {
+  width: min(100%, 460px);
+  padding: 38px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 253, 251, 0.95);
+  box-shadow: 0 25px 70px rgba(60, 44, 31, 0.12);
+}
+.auth-card h2 {
+  margin: 0 0 10px;
+  font:
+    500 2.2rem "Playfair Display",
+    Georgia,
+    serif;
+}
+.auth-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.access-card {
+  text-align: center;
+}
+.access-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 1.7rem;
+}
+.access-card .btn {
+  width: 100%;
+  margin-top: 24px;
+}

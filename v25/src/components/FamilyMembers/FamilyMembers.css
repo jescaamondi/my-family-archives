@@ -1,0 +1,127 @@
+.family-members-heading {
+  margin-bottom: 32px;
+}
+.member-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.member-filter {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.73rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.member-filter.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.member-filter span {
+  margin-left: 4px;
+  color: var(--muted);
+}
+.member-filter.active span {
+  color: #eadfd5;
+}
+.member-list {
+  display: grid;
+  gap: 12px;
+}
+.member-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.member-card strong {
+  font-size: 0.95rem;
+}
+.member-card p {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.member-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.member-badge {
+  padding: 4px 8px;
+  border-radius: 99px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.member-badge.approved {
+  background: #d1efd7;
+  color: var(--success);
+}
+.member-badge.pending {
+  background: #f6eed2;
+  color: #8a691d;
+}
+.member-badge.rejected {
+  background: #c1afac;
+  color: var(--danger);
+}
+.member-badge.role {
+  background: #ebdfd1;
+  color: var(--ink-soft);
+}
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.member-actions button {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.member-actions .approve {
+  color: var(--success);
+  background: #e5efe7;
+  border-color: #c8ddce;
+}
+.member-actions .reject {
+  color: var(--danger);
+  background: #f6dfdb;
+  border-color: #e4c1bc;
+}
+.member-actions .admin {
+  color: #5a4f91;
+  background: #e2e0ee;
+  border-color: #6350b9;
+}
+.members-message {
+  padding: 52px;
+  border: 1px dashed var(--line-dark);
+  color: var(--muted);
+  text-align: center;
+}
+@media (max-width: 700px) {
+  .member-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .member-actions {
+    width: 100%;
+  }
+}

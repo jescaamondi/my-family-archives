@@ -1,0 +1,364 @@
+/* =========================================================
+   FAMILY ARCHIVE — UI POLISH PASS
+   Soft editorial / heirloom aesthetic with clearer hierarchy
+========================================================= */
+:root {
+  --accent: #76502f;
+  --accent-dark: #5e3d23;
+  --accent-soft: #efe5d9;
+  --ink: #2e2823;
+  --ink-soft: #6f6257;
+  --muted: #968a7f;
+  --paper: #f8f4ef;
+  --paper-deep: #eee5dc;
+  --surface: rgba(255, 253, 250, .94);
+  --line: #e4dbd2;
+  --line-dark: #d3c4b6;
+  --radius: 18px;
+  --shadow: 0 18px 50px rgba(64, 45, 31, .075);
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% -5%, rgba(226, 207, 187, .34), transparent 30%),
+    var(--paper);
+}
+
+.stage {
+  background:
+    radial-gradient(circle at 75% 0%, rgba(255,255,255,.72), transparent 28%),
+    var(--paper);
+}
+
+.page {
+  padding-top: 52px;
+}
+
+/* Navigation */
+.side-nav {
+  width: 238px;
+  padding: 30px 14px 22px;
+  background: rgba(250, 247, 242, .88);
+  box-shadow: 8px 0 35px rgba(61, 44, 31, .035);
+}
+.brand {
+  margin: 2px 12px 38px;
+}
+.brand strong {
+  font-size: 1.38rem;
+  letter-spacing: -.025em;
+}
+.brand span {
+  margin-top: 9px;
+}
+.side-nav nav {
+  gap: 6px;
+}
+.side-nav nav button {
+  min-height: 46px;
+  padding: 0 13px;
+  border-radius: 13px;
+  color: #76685c;
+}
+.side-nav nav button:hover {
+  background: #f0e7dd;
+}
+.side-nav nav button.active {
+  background: linear-gradient(135deg, #7b5532, #674423);
+  box-shadow: 0 10px 24px rgba(93, 59, 33, .16);
+}
+.nav-icon {
+  font-size: 1.05rem;
+  opacity: .9;
+}
+
+/* Buttons / focus */
+.btn,
+.gallery-upload-button,
+.gallery-empty-button,
+.gallery-save,
+.story-add-button,
+.milestone-add-button,
+.add-member-button {
+  border-radius: 12px;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.btn-primary,
+.story-add-button,
+.milestone-add-button,
+.add-member-button {
+  background: linear-gradient(135deg, #7b5532, #674423);
+}
+.btn-primary:hover,
+.story-add-button:hover,
+.milestone-add-button:hover,
+.add-member-button:hover {
+  background: linear-gradient(135deg, #86603a, #704a27);
+  box-shadow: 0 10px 24px rgba(93, 59, 33, .15);
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(118, 80, 47, .18);
+  outline-offset: 2px;
+}
+
+/* Page headings */
+.page-heading,
+.gallery-header,
+.stories-heading-row,
+.milestones-heading-row,
+.family-tree-header {
+  position: relative;
+}
+.page-heading h1,
+.gallery-header h1,
+.stories-heading h1,
+.milestones-heading h1,
+.family-tree-heading h1 {
+  letter-spacing: -.055em;
+}
+.subtitle {
+  color: var(--ink-soft);
+}
+
+/* Home */
+.home-hero {
+  padding-top: 18px;
+  border-bottom-color: var(--line-dark);
+}
+.home-hero h1 {
+  max-width: 850px;
+  font-size: clamp(3.8rem, 7vw, 6.5rem);
+}
+.hero-mark {
+  min-width: 120px;
+}
+.archive-stats {
+  background: rgba(255,255,255,.26);
+}
+.archive-stats div {
+  padding-top: 27px;
+  padding-bottom: 25px;
+}
+.featured-memory {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.featured-image {
+  background: #ddd0c3;
+}
+.featured-copy {
+  background: linear-gradient(145deg, #efe5db, #e9ddd2);
+}
+.home-photo-grid {
+  gap: 16px;
+}
+.home-photo-card {
+  overflow: hidden;
+  border-radius: 15px;
+  box-shadow: 0 8px 28px rgba(64,45,31,.045);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.home-photo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(64,45,31,.09);
+}
+.home-photo-card img {
+  transition: transform .35s ease;
+}
+.home-photo-card:hover img {
+  transform: scale(1.025);
+}
+
+/* Gallery */
+.gallery-page {
+  max-width: 1320px;
+  padding-top: 48px;
+}
+.gallery-header {
+  margin-bottom: 34px;
+}
+.gallery-upload-button,
+.gallery-empty-button,
+.gallery-save {
+  background: linear-gradient(135deg, #7b5532, #674423);
+  box-shadow: 0 8px 20px rgba(80,54,34,.12);
+}
+.gallery-grid {
+  gap: 14px;
+}
+.gallery-card {
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(58,41,29,.07);
+  isolation: isolate;
+}
+.gallery-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(25,17,11,0) 45%, rgba(25,17,11,.2) 100%);
+  opacity: .45;
+  transition: opacity .25s ease;
+}
+.gallery-card:hover::after {
+  opacity: .75;
+}
+.gallery-card-info {
+  z-index: 2;
+}
+.gallery-card-info strong {
+  font-size: .95rem;
+}
+.gallery-empty {
+  background: rgba(255,253,250,.58);
+  box-shadow: var(--shadow);
+}
+.gallery-upload-modal,
+.story-modal,
+.milestone-modal {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 35px 90px rgba(38,27,18,.22);
+}
+.gallery-modal-backdrop,
+.story-modal-backdrop,
+.milestone-modal-backdrop {
+  background: rgba(38, 28, 20, .48);
+  backdrop-filter: blur(7px);
+}
+
+/* Stories */
+.stories-heading {
+  padding-bottom: 34px;
+}
+.story-card {
+  padding: 34px 0;
+  border-bottom-color: var(--line-dark);
+}
+.story-card:hover .story-image {
+  box-shadow: 0 14px 34px rgba(58,41,29,.1);
+}
+.story-image {
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(58,41,29,.06);
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.story-card:hover .story-image {
+  transform: translateY(-2px);
+}
+.story-people span,
+.person-picker button,
+.gallery-person-options button,
+.milestone-people span {
+  border-radius: 999px;
+}
+.story-comments,
+.milestone-comments {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+/* Milestones */
+.milestones-heading-row {
+  margin-bottom: 34px;
+}
+.milestone-board {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.milestone-board-card {
+  border-radius: 18px;
+  box-shadow: 0 12px 35px rgba(64,45,31,.065);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.milestone-board-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 45px rgba(64,45,31,.11);
+}
+.milestone-inspiration {
+  height: 230px;
+}
+.milestone-copy {
+  padding: 21px 21px 20px;
+}
+.milestone-copy h2 {
+  font-size: 1.8rem;
+}
+.milestone-actions button {
+  border-radius: 10px;
+  background: #faf7f3;
+  transition: background .18s ease, transform .18s ease;
+}
+.milestone-actions button:hover {
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+.milestone-modal {
+  padding: 32px;
+}
+
+/* Family tree */
+.family-tree-page {
+  background:
+    radial-gradient(circle at 50% 5%, rgba(255,255,255,.9), transparent 38%),
+    #f3ece3;
+}
+.family-tree-canvas {
+  border-radius: 24px;
+  box-shadow: 0 18px 55px rgba(68,44,25,.08);
+}
+.tree-person-card {
+  transition: transform .2s ease, filter .2s ease;
+}
+.tree-person-card:hover {
+  filter: drop-shadow(0 10px 16px rgba(67,43,24,.08));
+}
+.person-photo-frame {
+  border-radius: 12px;
+}
+
+/* Shared empty states */
+.empty-state,
+.home-empty {
+  background: rgba(255,253,250,.65);
+  border-color: var(--line-dark);
+}
+
+/* Mobile polish */
+@media (max-width: 1000px) {
+  .milestone-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .side-nav {
+    width: 100%;
+  }
+  .page {
+    padding-top: 36px;
+  }
+}
+@media (max-width: 700px) {
+  .gallery-page {
+    padding-top: 30px;
+  }
+  .gallery-card {
+    border-radius: 13px;
+  }
+  .milestone-board {
+    grid-template-columns: 1fr;
+  }
+  .milestone-inspiration {
+    height: 210px;
+  }
+  .story-add-button,
+  .milestone-add-button {
+    width: 100%;
+  }
+}

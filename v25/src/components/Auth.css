@@ -1,0 +1,62 @@
+.auth-form-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font:
+    500 clamp(2.6rem, 8vw, 3.6rem)/0.98 "Playfair Display",
+    Georgia,
+    serif;
+  letter-spacing: -0.04em;
+}
+.auth-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 22px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.5rem;
+}
+.auth-intro {
+  margin: 14px 0 28px !important;
+}
+.auth-submit {
+  width: 100%;
+}
+.auth-message {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 11px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.auth-message.success {
+  border-color: #c8ddce;
+  background: #e5efe7;
+  color: var(--success);
+}
+.auth-message.error {
+  border-color: #e4c1bc;
+  background: #f5e5e2;
+  color: var(--danger);
+}
+.auth-switch {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.auth-switch button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
