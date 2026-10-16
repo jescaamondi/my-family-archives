@@ -2,7 +2,7 @@
 
 ## Frontend host
 
-Use either the source project with a Node build or the included `dist/` directory for static hosting.
+Build the project with Node and publish the generated `dist/` directory to any static host.
 
 Build command:
 
@@ -30,7 +30,7 @@ The Vite frontend intentionally has no fallback Supabase credentials.
 
 Apply the migrations in `supabase/migrations/` to the intended project.
 
-Verify the existing `family_members` table and its approval/admin RLS policies before production use.
+`001_family_members.sql` creates the `family_members` table, the sign-up trigger and its approval/admin RLS policies. On a project where this table already exists, compare it with the live table before running the file.
 
 Verify the private `family-media` bucket has policies for approved family users and the required upload/read paths.
 

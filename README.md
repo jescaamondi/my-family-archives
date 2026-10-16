@@ -1,64 +1,85 @@
 # Family Archive
 
-Private family archive built with React, Vite and Supabase.
+A private web app where a family can keep its memories in one place: photos, stories, a family tree and shared goals. Only people an admin has approved can get in, and every photo is stored privately.
 
-## Requirements
+<!-- Add screenshots here, for example:
+![Home page](docs/screenshots/home.png)
+![Family tree](docs/screenshots/family-tree.png)
+-->
 
-- Node.js 20+
-- A Supabase project with the required tables, storage bucket and RLS policies
-- A VAPID public key if browser push notifications are enabled
+## Features
 
-## Local setup
+- **Memories and gallery.** Add photos with a date, place and the people in them, then group them into family albums. Photos open in a full-screen lightbox.
+- **Family tree.** Show the family across generations, with parents, spouses, birth and death dates.
+- **Stories.** Write longer family stories, tag the people in them and comment on each other's stories.
+- **Milestones.** Plan shared family goals with steps, contributions, photos and comments, plus reminders sent as browser push notifications.
+- **Family activity feed** and an in-app notification centre, updated live.
+- **Invite-only access.** New sign-ups wait as "pending" until an admin approves them. Admins can also make other members admins.
+- **Profiles** for each family member.
 
-1. Install dependencies:
+## How it's built
 
-```bash
-npm install
+| Part | Technology |
+| --- | --- |
+| Frontend | React 19 and Vite |
+| Database and login | Supabase (Postgres and Supabase Auth) |
+| Access rules | Postgres row level security, so only approved members can read family data |
+| Photos | A private Supabase storage bucket; images are shown through short-lived signed URLs |
+| Reminders | A Supabase Edge Function sends web push notifications through a service worker |
+
+```
+src/
+├── components/   # one folder per screen (Gallery, FamilyTree, Stories, Milestones, …)
+├── lib/          # storage, notifications and toast helpers
+└── styles/       # shared design tokens and layout
+supabase/
+├── migrations/   # database tables and security policies, run in order
+└── functions/    # send-milestone-reminders Edge Function
 ```
 
-2. Copy `.env.example` to `.env.local` and provide the frontend values:
+## Run it locally
 
-```text
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_VAPID_PUBLIC_KEY=
-```
+You need Node.js 20+ and a free [Supabase](https://supabase.com) project.
 
-Never put service-role keys, Supabase secret keys, VAPID private keys or cron secrets in `.env.local` for the frontend.
+1. **Install dependencies**
 
-3. Run the app:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-```
+2. **Set up the database.** In the Supabase SQL editor, run each file in `supabase/migrations/` in order, starting with `001_family_members.sql`. Then create a private storage bucket called `family-media`.
 
-4. Verify the production build:
+3. **Add your keys.** Copy `.env.example` to `.env.local` and fill in your project URL and anon key from Supabase. The VAPID key is only needed for push reminders.
+
+   ```text
+   VITE_SUPABASE_URL=
+   VITE_SUPABASE_ANON_KEY=
+   VITE_VAPID_PUBLIC_KEY=
+   ```
+
+   Only browser-safe values go here. Service-role keys, VAPID private keys and the reminder secret stay in Supabase Edge Function secrets.
+
+4. **Start the app**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Make yourself the first admin.** Sign up in the app, then run this once in the SQL editor with your own email:
+
+   ```sql
+   UPDATE public.family_members
+   SET status = 'approved', role = 'admin'
+   WHERE email = 'you@example.com';
+   ```
+
+## Checks
 
 ```bash
 npm run lint
 npm run build
 ```
 
-## Supabase
-
-SQL migrations are in `supabase/migrations/`.
-
-The private `family-media` storage bucket is used for family photos, profile photos, stories and milestone media. Private objects should be stored as paths and displayed through signed URLs.
-
-The scheduled reminder Edge Function is in:
-
-`supabase/functions/send-milestone-reminders/`
-
-Its private VAPID credentials and scheduler secret must remain in Supabase Edge Function secrets.
-
 ## Deployment
 
-Build the frontend with:
-
-```bash
-npm run build
-```
-
-Deploy the generated `dist/` directory to your chosen static host, or configure the host to run `npm run build` and publish `dist`.
-
-Configure the three `VITE_*` environment variables in the hosting provider before building.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for hosting the frontend and deploying the reminder function.
