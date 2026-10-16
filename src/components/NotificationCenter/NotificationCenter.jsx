@@ -5,7 +5,7 @@ export default function NotificationCenter({ reminders = [], comments = [], cont
   const [read, setRead] = useState(() => { try { return JSON.parse(localStorage.getItem('familyArchiveNotificationsRead') || '[]'); } catch { return []; } });
   const items = useMemo(() => {
     const a = reminders.map(r=>({id:`reminder-${r.id}`,kind:'Reminder',icon:'⏰',title:r.title||'Milestone reminder',body:r.note||'A family plan needs your attention.',date:r.remind_at||r.due_at,milestoneId:r.milestone_id}));
-    const b = comments.slice(-8).map(c=>({id:`comment-${c.id}`,kind:'Family voice',icon:'💬',title:'Someone added to a milestone conversation',body:c.content||'New comment on a family goal.',date:c.created_at,milestoneId:c.milestone_id}));
+    const b = comments.slice(-8).map(c=>({id:`comment-${c.id}`,kind:'Family voice',icon:'💬',title:'Someone added to a milestone conversation',body:c.body||c.content||'New comment on a family goal.',date:c.created_at,milestoneId:c.milestone_id}));
     const d = contributions.slice(-8).map(c=>({id:`contribution-${c.id}`,kind:'Contribution',icon:'🤝',title:'A family member offered to help',body:c.note||'A new contribution was added.',date:c.created_at,milestoneId:c.milestone_id}));
     return [...a,...b,...d].sort((x,y)=>new Date(y.date||0)-new Date(x.date||0)).slice(0,14);
   },[reminders,comments,contributions]);

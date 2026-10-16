@@ -1,145 +1,296 @@
--- Family Archive v3: connected gallery, stories and future milestones.
+-- Migration: 003_family_memories_stories_milestones.sql
+-- Adds memories/stories/milestones and related join tables described in README
 
-create table if not exists public.memory_people (
-  memory_id uuid not null references public.memories(id) on delete cascade,
-  person_id uuid not null references public.family_people(id) on delete cascade,
-  created_by uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now(),
-  primary key (memory_id, person_id)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- memories table (gallery items)
+CREATE TABLE IF NOT EXISTS public.memories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text,
+  description text,
+  date date,
+  category text,
+  tags text[],
+  author text,
+  posted_by uuid,
+  created_by uuid,
+  created_at timestamptz DEFAULT now(),
+  media_url text,
+  media_type text,
+  is_milestone boolean DEFAULT false,
+  is_featured boolean DEFAULT false
 );
 
-create table if not exists public.family_stories (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  body text not null,
+CREATE INDEX IF NOT EXISTS idx_memories_created_at ON public.memories(created_at);
+
+-- memory_people (tagging people in photos)
+CREATE TABLE IF NOT EXISTS public.memory_people (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  memory_id uuid NOT NULL,
+  person_id uuid NOT NULL,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_memory_people_memory_id ON public.memory_people(memory_id);
+
+-- gallery albums
+CREATE TABLE IF NOT EXISTS public.gallery_albums (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
   cover_path text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.gallery_album_memories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  album_id uuid NOT NULL,
+  memory_id uuid NOT NULL,
+  added_by uuid,
+  added_at timestamptz DEFAULT now()
+);
+
+-- stories
+CREATE TABLE IF NOT EXISTS public.family_stories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text,
+  body text,
   story_date date,
   location text,
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  cover_path text,
+  audio_path text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create table if not exists public.story_people (
-  story_id uuid not null references public.family_stories(id) on delete cascade,
-  person_id uuid not null references public.family_people(id) on delete cascade,
-  created_by uuid references auth.users(id) on delete set null,
-  primary key (story_id, person_id)
+CREATE TABLE IF NOT EXISTS public.story_people (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  story_id uuid NOT NULL,
+  person_id uuid NOT NULL,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create table if not exists public.story_comments (
-  id uuid primary key default gen_random_uuid(),
-  story_id uuid not null references public.family_stories(id) on delete cascade,
-  body text not null,
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.story_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  story_id uuid NOT NULL,
+  body text,
+  parent_id uuid,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create table if not exists public.family_milestones (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
+-- milestones
+CREATE TABLE IF NOT EXISTS public.family_milestones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text,
   description text,
   target_date date,
-  status text not null default 'idea' check (status in ('idea','in_progress','achieved')),
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  status text,
+  budget_goal numeric,
+  budget_currency text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz
 );
 
-create table if not exists public.milestone_people (
-  milestone_id uuid not null references public.family_milestones(id) on delete cascade,
-  person_id uuid not null references public.family_people(id) on delete cascade,
-  created_by uuid references auth.users(id) on delete set null,
-  primary key (milestone_id, person_id)
+CREATE TABLE IF NOT EXISTS public.milestone_people (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id uuid NOT NULL,
+  person_id uuid NOT NULL,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create table if not exists public.milestone_media (
-  id uuid primary key default gen_random_uuid(),
-  milestone_id uuid not null references public.family_milestones(id) on delete cascade,
-  media_path text not null,
-  media_type text not null default 'image' check (media_type in ('image','video')),
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.milestone_media (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id uuid NOT NULL,
+  media_path text,
+  media_type text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create table if not exists public.milestone_comments (
-  id uuid primary key default gen_random_uuid(),
-  milestone_id uuid not null references public.family_milestones(id) on delete cascade,
-  body text not null,
-  parent_id uuid references public.milestone_comments(id) on delete cascade,
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.milestone_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id uuid NOT NULL,
+  body text,
+  parent_id uuid,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create table if not exists public.milestone_contributions (
-  id uuid primary key default gen_random_uuid(),
-  milestone_id uuid not null references public.family_milestones(id) on delete cascade,
+CREATE TABLE IF NOT EXISTS public.milestone_contributions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id uuid NOT NULL,
   note text,
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now()
+  contribution_type text,
+  amount numeric,
+  currency text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create index if not exists memory_people_person_idx on public.memory_people(person_id);
-create index if not exists story_people_person_idx on public.story_people(person_id);
-create index if not exists story_comments_story_idx on public.story_comments(story_id, created_at);
-create index if not exists milestone_people_person_idx on public.milestone_people(person_id);
-create index if not exists milestone_comments_idx on public.milestone_comments(milestone_id, created_at);
-create index if not exists milestone_contributions_idx on public.milestone_contributions(milestone_id, created_at);
+CREATE TABLE IF NOT EXISTS public.milestone_steps (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id uuid NOT NULL,
+  title text,
+  status text DEFAULT 'todo',
+  created_by uuid,
+  created_at timestamptz DEFAULT now(),
+  completed_at timestamptz
+);
 
-create or replace function public.touch_family_story_updated_at() returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end; $$;
-create or replace function public.touch_family_milestone_updated_at() returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end; $$;
-drop trigger if exists family_story_updated_at on public.family_stories;
-create trigger family_story_updated_at before update on public.family_stories for each row execute function public.touch_family_story_updated_at();
-drop trigger if exists family_milestone_updated_at on public.family_milestones;
-create trigger family_milestone_updated_at before update on public.family_milestones for each row execute function public.touch_family_milestone_updated_at();
+CREATE TABLE IF NOT EXISTS public.milestone_reminders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  milestone_id uuid NOT NULL,
+  step_id uuid,
+  contribution_id uuid,
+  reminder_type text,
+  title text,
+  note text,
+  remind_at timestamptz,
+  remind_user_id uuid,
+  created_by uuid,
+  created_at timestamptz DEFAULT now(),
+  completed_at timestamptz
+);
 
-alter table public.memory_people enable row level security;
-alter table public.family_stories enable row level security;
-alter table public.story_people enable row level security;
-alter table public.story_comments enable row level security;
-alter table public.family_milestones enable row level security;
-alter table public.milestone_people enable row level security;
-alter table public.milestone_media enable row level security;
-alter table public.milestone_comments enable row level security;
-alter table public.milestone_contributions enable row level security;
+-- push subscriptions and deliveries used by edge function
+CREATE TABLE IF NOT EXISTS public.milestone_push_subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  endpoint text NOT NULL,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
 
--- Family membership is the single access boundary for all new archive features.
-create policy "approved family can view memory people" on public.memory_people for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add memory people" on public.memory_people for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "approved family can delete memory people" on public.memory_people for delete to authenticated using (public.is_approved_family_member());
+CREATE TABLE IF NOT EXISTS public.milestone_reminder_deliveries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  reminder_id uuid NOT NULL,
+  subscription_id uuid NOT NULL,
+  delivered_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
 
-create policy "approved family can view stories" on public.family_stories for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add stories" on public.family_stories for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "creators can update stories" on public.family_stories for update to authenticated using (public.is_approved_family_member() and created_by = auth.uid()) with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "creators can delete stories" on public.family_stories for delete to authenticated using (public.is_approved_family_member() and created_by = auth.uid());
+-- Note: RLS policies and FK constraints intentionally omitted; apply appropriate policies in Supabase dashboard.
 
-create policy "approved family can view story people" on public.story_people for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add story people" on public.story_people for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "approved family can delete story people" on public.story_people for delete to authenticated using (public.is_approved_family_member());
-create policy "approved family can view story comments" on public.story_comments for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add story comments" on public.story_comments for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "comment creators can update story comments" on public.story_comments for update to authenticated using (public.is_approved_family_member() and created_by = auth.uid()) with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "comment creators can delete story comments" on public.story_comments for delete to authenticated using (public.is_approved_family_member() and created_by = auth.uid());
+-- Recommended cautious RLS policy templates (review and adapt before applying):
 
-create policy "approved family can view milestones" on public.family_milestones for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add milestones" on public.family_milestones for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "creators can update milestones" on public.family_milestones for update to authenticated using (public.is_approved_family_member() and created_by = auth.uid()) with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "creators can delete milestones" on public.family_milestones for delete to authenticated using (public.is_approved_family_member() and created_by = auth.uid());
+-- Enable RLS on tables that store user-generated content
+-- ALTER TABLE public.memories ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.memory_people ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.gallery_albums ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.gallery_album_memories ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.family_stories ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.story_people ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.story_comments ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.family_milestones ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_people ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_media ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_comments ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_contributions ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_steps ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_reminders ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_push_subscriptions ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.milestone_reminder_deliveries ENABLE ROW LEVEL SECURITY;
 
-create policy "approved family can view milestone people" on public.milestone_people for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add milestone people" on public.milestone_people for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "approved family can delete milestone people" on public.milestone_people for delete to authenticated using (public.is_approved_family_member());
-create policy "approved family can view milestone media" on public.milestone_media for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add milestone media" on public.milestone_media for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "approved family can delete milestone media" on public.milestone_media for delete to authenticated using (public.is_approved_family_member() and created_by = auth.uid());
-create policy "approved family can view milestone comments" on public.milestone_comments for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add milestone comments" on public.milestone_comments for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "comment creators can update milestone comments" on public.milestone_comments for update to authenticated using (public.is_approved_family_member() and created_by = auth.uid()) with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "comment creators can delete milestone comments" on public.milestone_comments for delete to authenticated using (public.is_approved_family_member() and created_by = auth.uid());
-create policy "approved family can view milestone contributions" on public.milestone_contributions for select to authenticated using (public.is_approved_family_member());
-create policy "approved family can add milestone contributions" on public.milestone_contributions for insert to authenticated with check (public.is_approved_family_member() and created_by = auth.uid());
-create policy "contribution creators can delete milestone contributions" on public.milestone_contributions for delete to authenticated using (public.is_approved_family_member() and created_by = auth.uid());
+-- Ownership-based policies: allow authenticated users to operate on rows they created
+-- (these assume a `created_by`, `created_by` or `user_id` column present)
+-- Example for `memories`:
+-- CREATE POLICY "memories_owner_crud" ON public.memories
+--   FOR ALL
+--   USING (created_by = auth.uid() OR posted_by = auth.uid())
+--   WITH CHECK (created_by = auth.uid() OR posted_by = auth.uid());
 
-comment on table public.memory_people is 'Connects gallery memories to people in the family tree.';
-comment on table public.family_stories is 'Long-form family stories written by family members.';
-comment on table public.family_milestones is 'Shared future plans, dreams and goals for the family.';
+-- Example: allow authenticated users to SELECT rows they created or that belong to their family
+-- Replace the EXISTS subquery with your project's actual membership check.
+-- CREATE POLICY "memories_select_family" ON public.memories
+--   FOR SELECT
+--   USING (
+--     created_by = auth.uid()
+--     OR posted_by = auth.uid()
+--     OR EXISTS (
+--       SELECT 1 FROM public.family_members fm WHERE fm.user_id = auth.uid()
+--       -- AND fm.family_id = public.memories.family_id -- if your schema has family linkage
+--     )
+--   );
+
+-- For join/association tables (memory_people, gallery_album_memories, story_people, etc.)
+-- you can restrict INSERT/DELETE to users who own the parent resource. Example (memory_people):
+-- CREATE POLICY "memory_people_parent_owner" ON public.memory_people
+--   FOR INSERT, DELETE
+--   USING (EXISTS (SELECT 1 FROM public.memories m WHERE m.id = memory_id AND m.created_by = auth.uid()))
+--   WITH CHECK (EXISTS (SELECT 1 FROM public.memories m WHERE m.id = memory_id AND m.created_by = auth.uid()));
+
+-- Push subscriptions: typically allow a user to manage only their own subscription
+-- CREATE POLICY "milestone_push_subscriptions_owner" ON public.milestone_push_subscriptions
+--   FOR ALL
+--   USING (user_id = auth.uid())
+--   WITH CHECK (user_id = auth.uid());
+
+-- Delivery records: allow internal backend service role to insert deliveries (use service_role key),
+-- and allow authenticated users to SELECT their deliveries if applicable.
+-- Example placeholder:
+-- CREATE POLICY "milestone_reminder_deliveries_insert_by_service" ON public.milestone_reminder_deliveries
+--   FOR INSERT
+--   USING (auth.role() = 'service_role')
+--   WITH CHECK (auth.role() = 'service_role');
+
+-- Notes:
+-- 1) These are templates — adapt column names (e.g., `created_by`, `user_id`, `posted_by`) to your schema.
+-- 2) Test policies in a staging Supabase project before applying to production.
+-- 3) You may need additional policies to allow your backend edge functions (service role) to perform writes — typically done by using the service role key from a secure environment and not via RLS exceptions.
+
+-- -------------------------------
+-- Concrete `memories` RLS templates
+-- -------------------------------
+-- These statements are deliberately commented out. Review, adapt column names, then run them
+-- in the Supabase SQL editor (or include uncommented in a migration) when ready.
+
+-- 1) Enable RLS on `memories` (required before adding policies)
+-- ALTER TABLE public.memories ENABLE ROW LEVEL SECURITY;
+
+-- 2) Owner-based full CRUD policy: allow the creator (or `posted_by`) to fully manage their rows
+-- CREATE POLICY "memories_owner_crud" ON public.memories
+--   FOR ALL
+--   USING (created_by = auth.uid() OR posted_by = auth.uid())
+--   WITH CHECK (created_by = auth.uid() OR posted_by = auth.uid());
+
+-- 3) Read policy for family members (example placeholder):
+--    This assumes you have a `family_members(user_id, family_id)` table and a `family_id` column
+--    on `memories`. Update the subquery to match your membership model.
+-- CREATE POLICY "memories_select_family" ON public.memories
+--   FOR SELECT
+--   USING (
+--     created_by = auth.uid()
+--     OR posted_by = auth.uid()
+--     OR (
+--       -- example membership check; adapt to your schema
+--       EXISTS (
+--         SELECT 1
+--         FROM public.family_members fm
+--         WHERE fm.user_id = auth.uid()
+--           AND fm.family_id = public.memories.family_id
+--       )
+--     )
+--   );
+
+-- 4) Insert/Update guard: ensure `created_by` is set to the authenticated user
+--    This prevents users from inserting rows that claim another user as owner.
+-- CREATE POLICY "memories_insert_auth_check" ON public.memories
+--   FOR INSERT, UPDATE
+--   WITH CHECK (created_by = auth.uid() OR posted_by = auth.uid());
+
+-- 5) Service role exceptions (for server-side jobs):
+--    Use your service_role key in trusted server code to bypass RLS when necessary.
+--    Do NOT store the service role key in client-side code.
+
+-- Quick test sequence (run in Supabase SQL editor after applying policies):
+-- 1) Try anonymous INSERT (should be denied if no anon policy exists).
+-- 2) Sign up/sign in a user and attempt INSERT where `created_by = auth.uid()` (should succeed).
+-- 3) Try SELECT as another user (should be denied unless membership applies).
+
+

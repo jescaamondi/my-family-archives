@@ -1,6 +1,8 @@
 import { supabase } from "../../supabaseClient";
 import { useState, useEffect } from "react";
 import "./AddMemory.css";
+import { useToasts } from "../../lib/useToasts";
+import mapStorageError from "../../lib/storageHelpers";
 
 function AddMemory({ onMemoryAdded, onClose }) {
   const [formData, setFormData] = useState({
@@ -36,9 +38,11 @@ function AddMemory({ onMemoryAdded, onClose }) {
 
     getUser();
   }, []);
+  const { add: addToast } = useToasts();
 
   useEffect(() => {
     if (!file) {
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setPreviewUrl(null);
       return;
     }
@@ -102,22 +106,25 @@ function AddMemory({ onMemoryAdded, onClose }) {
     try {
       if (file) {
         const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("memories")
-          .upload(fileName, file);
+          .from("family-media")
+          .upload(filePath, file);
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
-          throw new Error("There was a problem uploading your file.");
+          throw new Error(mapStorageError(uploadError));
         }
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("memories").getPublicUrl(fileName);
-
-        mediaUrl = publicUrl;
+        mediaUrl = filePath;
         mediaType = file.type.startsWith("video") ? "video" : "image";
       }
 
@@ -147,7 +154,15 @@ function AddMemory({ onMemoryAdded, onClose }) {
       onMemoryAdded();
       onClose();
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      const msg = err.message || "Something went wrong.";
+      setError(msg);
+      try {
+        addToast({
+          title: "Could not add memory",
+          message: msg,
+          type: "error",
+        });
+      } catch { /* Toasts are optional UI feedback. */ }
     } finally {
       setUploading(false);
     }

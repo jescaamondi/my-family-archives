@@ -1,154 +1,486 @@
 import { useMemo, useState } from "react";
+import { supabase } from "../../supabaseClient";
+import mapStorageError from "../../lib/storageHelpers";
 import "./FamilyTree.css";
 
-const DEMO = [
-  { id:"a1", full_name:"Alexander", relationship:"Great Grandfather", birth_date:"1931-01-01", generation:0, photo_url:"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80", parent_id:null },
-  { id:"a2", full_name:"Nina", relationship:"Great Grandmother", birth_date:"1934-01-01", generation:0, photo_url:"https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80", parent_id:null },
-  { id:"b1", full_name:"Michael", relationship:"Grandfather", birth_date:"1957-01-01", generation:1, photo_url:"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=500&q=80", parent_id:"a1" },
-  { id:"b2", full_name:"Tamara", relationship:"Grandmother", birth_date:"1960-01-01", generation:1, photo_url:"https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=500&q=80", parent_id:"a1" },
-  { id:"c1", full_name:"Dmitry", relationship:"Dad", birth_date:"1983-01-01", generation:2, photo_url:"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=500&q=80", parent_id:"b1" },
-  { id:"c2", full_name:"Anna", relationship:"Mum", birth_date:"1986-01-01", generation:2, photo_url:"https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=500&q=80", parent_id:"b1" },
-  { id:"d1", full_name:"Jessy", relationship:"You", birth_date:"2009-01-01", generation:3, photo_url:"https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=500&q=80", parent_id:"c1" },
-];
+function year(value) {
+  if (!value) return "";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.getFullYear();
+}
 
-function initials(name="") { return name.split(" ").filter(Boolean).map(x=>x[0]).join("").slice(0,2).toUpperCase() || "?"; }
-function year(value) { if (!value) return ""; const d=new Date(value); return Number.isNaN(d.getTime()) ? "" : d.getFullYear(); }
-function date(value) { if (!value) return ""; const d=new Date(value); return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", {day:"numeric", month:"long", year:"numeric"}); }
+function date(value) {
+  if (!value) return "";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? ""
+    : parsed.toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+}
 
-export default function FamilyTree({ members = [], onAddMember }) {
-  const [people, setPeople] = useState(members.length ? members : DEMO);
+export default function FamilyTree({
+  people = [],
+  relationships = [],
+  currentUserId,
+  onRefresh,
+}) {
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [zoom, setZoom] = useState(1);
-  const [mode, setMode] = useState("story");
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({name:"", role:"", birth:"", relationship:"child", connectedTo:"d1", photo:"", bio:""});
-  const [branch, setBranch] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    relationship: "root",
+    connectedTo: "",
+    role: "",
+    birth: "",
+    bio: "",
+    photo: null,
+  });
 
   const generations = useMemo(() => {
     const groups = new Map();
-    people.forEach(person => {
-      const g = Number(person.generation ?? 0);
-      if (!groups.has(g)) groups.set(g, []);
-      groups.get(g).push(person);
+    people.forEach((person) => {
+      const generation = Number.isFinite(Number(person.generation))
+        ? Number(person.generation)
+        : 0;
+      if (!groups.has(generation)) groups.set(generation, []);
+      groups.get(generation).push(person);
     });
-    return [...groups.entries()].sort((a,b)=>a[0]-b[0]).map(([generation, list]) => ({generation, people:list}));
+
+    return [...groups.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([generation, members]) => ({
+        generation,
+        members: members.sort((a, b) =>
+          (a.full_name || "").localeCompare(b.full_name || ""),
+        ),
+      }));
   }, [people]);
 
-  const maxGeneration = generations.length ? generations[generations.length - 1].generation : 0;
-  const filtered = useMemo(() => {
-    const q=search.trim().toLowerCase();
-    return generations.map(g => ({...g, people:g.people.filter(p => {
-      if (branch && mode === "explore") {
-        const related = p.id === branch || p.parent_id === branch || people.some(x => x.id === branch && x.parent_id === p.id);
-        if (!related) return false;
-      }
-      return !q || `${p.full_name||""} ${p.relationship||""} ${p.location||""}`.toLowerCase().includes(q);
-    })})).filter(g=>g.people.length);
-  }, [generations, search, branch, mode, people]);
+  const filteredGenerations = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return generations;
 
-  const parents = selected ? people.filter(p => p.id === selected.parent_id) : [];
-  const children = selected ? people.filter(p => p.parent_id === selected.id) : [];
-  const siblings = selected?.parent_id ? people.filter(p => p.parent_id === selected.parent_id && p.id !== selected.id) : [];
-  const spouse = selected?.spouse_id ? people.find(p => p.id === selected.spouse_id) : null;
+    return generations
+      .map((generation) => ({
+        ...generation,
+        members: generation.members.filter((person) =>
+          `${person.full_name || ""} ${person.relationship || ""} ${person.location || ""}`
+            .toLowerCase()
+            .includes(query),
+        ),
+      }))
+      .filter((generation) => generation.members.length);
+  }, [generations, search]);
 
-  function openPerson(person) {
-    setSelected(person);
-    if (mode === "explore") setBranch(person.id);
+  const selectedParents = selected
+    ? people.filter((person) => person.id === selected.parent_id)
+    : [];
+  const selectedChildren = selected
+    ? people.filter((person) => person.parent_id === selected.id)
+    : [];
+  const selectedSpouse = selected?.spouse_id
+    ? people.find((person) => person.id === selected.spouse_id)
+    : null;
+  const selectedRelated = selected
+    ? relationships
+        .filter(
+          (relationship) =>
+            relationship.person_id === selected.id ||
+            relationship.related_person_id === selected.id,
+        )
+        .map((relationship) => {
+          const id =
+            relationship.person_id === selected.id
+              ? relationship.related_person_id
+              : relationship.person_id;
+          return {
+            ...relationship,
+            person: people.find((person) => person.id === id),
+          };
+        })
+        .filter((item) => item.person)
+    : [];
+
+  function openAdd(connectedTo = "") {
+    setError("");
+    setForm((current) => ({
+      ...current,
+      connectedTo,
+      relationship: people.length ? "child" : "root",
+    }));
+    setShowAdd(true);
   }
 
-  function addPerson(event) {
+  async function uploadPhoto(file, personId) {
+    if (!file) return null;
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `family-tree/${currentUserId}/${personId}-${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from("family-media")
+      .upload(path, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false,
+      });
+    if (uploadError) throw new Error(mapStorageError(uploadError));
+    return path;
+  }
+
+  async function addPerson(event) {
     event.preventDefault();
-    const connected = people.find(p => p.id === form.connectedTo);
-    if (!form.name.trim() || !connected) return;
-    let generation = Number(connected.generation ?? 0);
-    if (form.relationship === "child") generation += 1;
-    if (form.relationship === "parent") generation = Math.max(0, generation - 1);
-    if (form.relationship === "sibling") generation = generation;
-    if (form.relationship === "spouse") generation = generation;
-    const person = {
-      id:`local-${Date.now()}`,
-      full_name:form.name.trim(), relationship:form.role.trim() || form.relationship,
-      birth_date:form.birth || null, photo_url:form.photo.trim() || null, bio:form.bio.trim() || null,
-      generation, parent_id:form.relationship === "child" ? connected.id : connected.parent_id || null,
-      spouse_id:form.relationship === "spouse" ? connected.id : null
-    };
-    setPeople(prev => [...prev, person]);
-    setSelected(person);
-    setShowAdd(false);
-    setForm({name:"", role:"", birth:"", relationship:"child", connectedTo:person.id, photo:"", bio:""});
-    onAddMember?.(person);
+    if (!form.name.trim()) return;
+    if (people.length && !form.connectedTo) {
+      setError("Choose the family member this person is connected to.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const connected = people.find((person) => person.id === form.connectedTo);
+      let generation = 0;
+      let parentId = null;
+      let spouseId = null;
+
+      if (connected) {
+        generation = Number(connected.generation || 0);
+        if (form.relationship === "child") {
+          generation += 1;
+          parentId = connected.id;
+        } else if (form.relationship === "parent") {
+          generation = Math.max(0, generation - 1);
+          parentId = connected.parent_id || null;
+        } else if (form.relationship === "sibling") {
+          parentId = connected.parent_id || null;
+        } else if (form.relationship === "spouse") {
+          spouseId = connected.id;
+        }
+      }
+
+      const { data: person, error: insertError } = await supabase
+        .from("family_people")
+        .insert({
+          full_name: form.name.trim(),
+          relationship: form.role.trim() || form.relationship,
+          birth_date: form.birth || null,
+          bio: form.bio.trim() || null,
+          generation,
+          parent_id: parentId,
+          spouse_id: spouseId,
+          created_by: currentUserId,
+        })
+        .select("*")
+        .single();
+
+      if (insertError) throw insertError;
+
+      if (form.photo) {
+        const photoPath = await uploadPhoto(form.photo, person.id);
+        const { error: photoError } = await supabase
+          .from("family_people")
+          .update({ photo_path: photoPath })
+          .eq("id", person.id);
+        if (photoError) throw photoError;
+      }
+
+      if (connected) {
+        const relationshipRows = [];
+        if (form.relationship === "child" || form.relationship === "parent") {
+          relationshipRows.push({
+            person_id: person.id,
+            related_person_id: connected.id,
+            relationship_type:
+              form.relationship === "child" ? "child" : "parent",
+            created_by: currentUserId,
+          });
+        } else if (form.relationship === "spouse") {
+          relationshipRows.push(
+            {
+              person_id: person.id,
+              related_person_id: connected.id,
+              relationship_type: "spouse",
+              created_by: currentUserId,
+            },
+            {
+              person_id: connected.id,
+              related_person_id: person.id,
+              relationship_type: "spouse",
+              created_by: currentUserId,
+            },
+          );
+        } else if (form.relationship === "sibling") {
+          relationshipRows.push({
+            person_id: person.id,
+            related_person_id: connected.id,
+            relationship_type: "sibling",
+            created_by: currentUserId,
+          });
+        }
+
+        if (relationshipRows.length) {
+          const { error: relationshipError } = await supabase
+            .from("family_relationships")
+            .insert(relationshipRows);
+          if (relationshipError) throw relationshipError;
+        }
+      }
+
+      setShowAdd(false);
+      setForm({
+        name: "",
+        relationship: "child",
+        connectedTo: "",
+        role: "",
+        birth: "",
+        bio: "",
+        photo: null,
+      });
+      await onRefresh?.();
+    } catch (caughtError) {
+      console.error("Could not add family-tree person", caughtError);
+      setError(caughtError?.message || "Could not add this family member.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  return <div className="family-tree-page">
-    <header className="family-tree-header">
-      <div className="family-tree-heading">
-        <span className="eyebrow">THE FAMILY ARCHIVE</span>
-        <h1>Our ancestry, growing through generations <span className="heading-leaf">❧</span></h1>
-        <p>Ancestors begin at the top. Each generation grows downward until the youngest family members take root.</p>
-      </div>
-      <div className="tree-header-actions">
-        <div className="tree-mode-toggle">
-          <button className={mode === "story" ? "active" : ""} onClick={()=>{setMode("story");setBranch(null)}}>Story mode</button>
-          <button className={mode === "explore" ? "active" : ""} onClick={()=>setMode("explore")}>Explore mode</button>
+  return (
+    <div className="page family-tree-page">
+      <header className="family-tree-header">
+        <div className="family-tree-heading">
+          <span className="eyebrow">THE FAMILY ARCHIVE</span>
+          <h1>Our family, through generations</h1>
+          <p>
+            A living family structure built from the people and relationships
+            you add to the archive.
+          </p>
         </div>
-        <button className="add-member-button" onClick={()=>setShowAdd(true)}><span>+</span>Add family member</button>
+        <button className="add-member-button" onClick={() => openAdd()}>
+          <span>+</span> Add family member
+        </button>
+      </header>
+
+      <div className="family-tree-toolbar">
+        <label className="tree-search">
+          <span aria-hidden="true">⌕</span>
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search family members"
+            aria-label="Search family members"
+          />
+        </label>
+        <div className="tree-controls" aria-label="Tree zoom controls">
+          <button type="button" onClick={() => setZoom((value) => Math.min(1.35, value + 0.1))}>
+            +
+          </button>
+          <span>{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={() => setZoom((value) => Math.max(0.7, value - 0.1))}>
+            −
+          </button>
+          <button type="button" className="reset-zoom" onClick={() => setZoom(1)}>
+            Reset
+          </button>
+        </div>
       </div>
-    </header>
 
-    <div className="tree-intro-note">
-      <span>🌿</span><div><strong>{mode === "story" ? "Journey from ancestors to roots" : "Follow a family branch"}</strong><small>{mode === "story" ? "The layout automatically makes room as new generations are added." : "Select a person to focus on their connected branch."}</small></div>
-    </div>
+      <div className="family-tree-layout">
+        <main className="family-tree-canvas">
+          {!people.length ? (
+            <div className="tree-empty">
+              <span className="eyebrow">A CLEAN BEGINNING</span>
+              <h2>Your family tree starts here.</h2>
+              <p>
+                There are no genealogy people yet. Add your first real family
+                member and the structure will grow from their relationships.
+              </p>
+              <button type="button" onClick={() => openAdd()}>
+                + Add the first family member
+              </button>
+            </div>
+          ) : !filteredGenerations.length ? (
+            <div className="tree-empty compact">
+              <h2>No family member matches that search.</h2>
+              <button type="button" onClick={() => setSearch("")}>Clear search</button>
+            </div>
+          ) : (
+            <div className="tree-stage" style={{ transform: `scale(${zoom})` }}>
+              {filteredGenerations.map((generation, index) => (
+                <section className="tree-generation" key={generation.generation}>
+                  <div className="generation-label">
+                    <span>
+                      {index === 0
+                        ? "EARLIEST GENERATION"
+                        : `GENERATION ${index + 1}`}
+                    </span>
+                    <small>
+                      {generation.members.length} {generation.members.length === 1 ? "person" : "people"}
+                    </small>
+                  </div>
+                  <div className="people-row">
+                    {generation.members.map((person) => (
+                      <button
+                        type="button"
+                        className={`tree-person-card ${selected?.id === person.id ? "selected" : ""}`}
+                        key={person.id}
+                        onClick={() => setSelected(person)}
+                      >
+                        <div className="person-photo-frame">
+                          {person.photo_url ? (
+                            <img src={person.photo_url} alt={person.full_name || "Family member"} />
+                          ) : (
+                            <span className="empty-person-frame" aria-hidden="true" />
+                          )}
+                        </div>
+                        <div className="person-card-info">
+                          <strong>{person.full_name || "Unnamed family member"}</strong>
+                          {person.relationship && <span>{person.relationship}</span>}
+                          {person.birth_date && <em>{year(person.birth_date)}</em>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {index < filteredGenerations.length - 1 && (
+                    <div className="generation-connector" aria-hidden="true">
+                      <span />
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
+        </main>
 
-    <div className="family-tree-toolbar">
-      <div className="tree-search"><span>⌕</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search family members..." /></div>
-      <div className="tree-controls"><button onClick={()=>setZoom(z=>Math.min(1.4,z+.1))}>+</button><span>{Math.round(zoom*100)}%</span><button onClick={()=>setZoom(z=>Math.max(.65,z-.1))}>−</button><button className="reset-zoom" onClick={()=>setZoom(1)}>Reset</button></div>
-    </div>
-
-    <div className="family-tree-layout">
-      <main className="family-tree-canvas">
-        <div className="tree-stage" style={{transform:`scale(${zoom})`}}>
-          <div className="tree-canopy-label">✦ &nbsp; OLDEST KNOWN ANCESTORS &nbsp; ✦</div>
-          <div className="tree-lines">
-            {filtered.map((generation, index) => <section className="tree-generation" key={generation.generation}>
-              <div className="generation-label"><span>{index === 0 ? "ANCESTORS" : index === filtered.length-1 ? "ROOTS · YOUNGEST" : `GENERATION ${index+1}`}</span><small>{generation.people.length} {generation.people.length===1?"member":"members"}</small></div>
-              <div className="people-row">
-                {generation.people.map(person => <button className={`tree-person-card ${selected?.id===person.id?"selected":""}`} key={person.id} onClick={()=>openPerson(person)}>
-                  <div className="person-photo-frame">{person.photo_url || person.avatar_url ? <img src={person.photo_url || person.avatar_url} alt={person.full_name||"Family member"}/> : <div className="person-photo-placeholder">{initials(person.full_name)}</div>}</div>
-                  <div className="person-card-info"><strong>{person.full_name||"Family member"}</strong><span>{person.relationship || (index===0?"Ancestor":index===filtered.length-1?"Youngest generation":"Family member")}</span>{person.birth_date && <em>{year(person.birth_date)}</em>}</div>
-                </button>)}
+        {selected && (
+          <aside className="member-profile-panel">
+            <button
+              type="button"
+              className="close-profile"
+              onClick={() => setSelected(null)}
+              aria-label="Close family member profile"
+            >
+              ×
+            </button>
+            {selected.photo_url && (
+              <div className="profile-image">
+                <img src={selected.photo_url} alt={selected.full_name || "Family member"} />
               </div>
-              {index < filtered.length-1 && <div className="branch-connector"><span></span><i></i><span></span></div>}
-            </section>)}
-          </div>
-          <div className="living-trunk"><div className="trunk-stem"></div><div className="trunk-left"></div><div className="trunk-right"></div><div className="root-root root-one"></div><div className="root-root root-two"></div><div className="root-root root-three"></div></div>
-          <div className="root-caption">🌱 &nbsp; THE ROOTS OF THE YOUNGEST GENERATION</div>
+            )}
+            <div className="profile-heading">
+              <span className="profile-kicker">{selected.relationship || "Family member"}</span>
+              <h2>{selected.full_name || "Family member"}</h2>
+              {selected.birth_date && <span>Born {date(selected.birth_date)}</span>}
+            </div>
+            <div className="profile-actions">
+              <button type="button" onClick={() => openAdd(selected.id)}>＋ Add relative</button>
+            </div>
+            {(selected.location || selected.death_date) && (
+              <div className="profile-details">
+                {selected.location && <div><span>From</span><strong>{selected.location}</strong></div>}
+                {selected.death_date && <div><span>Died</span><strong>{date(selected.death_date)}</strong></div>}
+              </div>
+            )}
+            <section className="profile-section">
+              <h3>About</h3>
+              <p>{selected.bio || "No biography has been added yet."}</p>
+            </section>
+            <section className="profile-section">
+              <h3>Family</h3>
+              <div className="related-list">
+                {selectedParents.map((person) => (
+                  <button type="button" key={person.id} onClick={() => setSelected(person)}>Parent · {person.full_name}</button>
+                ))}
+                {selectedSpouse && (
+                  <button type="button" onClick={() => setSelected(selectedSpouse)}>Partner · {selectedSpouse.full_name}</button>
+                )}
+                {selectedChildren.map((person) => (
+                  <button type="button" key={person.id} onClick={() => setSelected(person)}>Child · {person.full_name}</button>
+                ))}
+                {selectedRelated.map(({ person, relationship_type: type }) => (
+                  <button type="button" key={`${type}-${person.id}`} onClick={() => setSelected(person)}>{type} · {person.full_name}</button>
+                ))}
+                {!selectedParents.length && !selectedSpouse && !selectedChildren.length && !selectedRelated.length && (
+                  <span className="no-related">No relationships added yet.</span>
+                )}
+              </div>
+            </section>
+          </aside>
+        )}
+      </div>
+
+      {showAdd && (
+        <div className="tree-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowAdd(false)}>
+          <form className="tree-add-modal" onSubmit={addPerson}>
+            <button type="button" className="close-profile" onClick={() => setShowAdd(false)} aria-label="Close">×</button>
+            <span className="eyebrow">GROW THE FAMILY TREE</span>
+            <h2>Add a real family member</h2>
+            <p className="modal-subtitle">
+              Start with one person, then connect parents, children, siblings or partners as your family grows.
+            </p>
+
+            <label>
+              Full name
+              <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            </label>
+
+            {people.length > 0 && (
+              <div className="form-two">
+                <label>
+                  Relationship
+                  <select value={form.relationship} onChange={(event) => setForm({ ...form, relationship: event.target.value })}>
+                    <option value="child">Child</option>
+                    <option value="parent">Parent</option>
+                    <option value="sibling">Sibling</option>
+                    <option value="spouse">Spouse / partner</option>
+                  </select>
+                </label>
+                <label>
+                  Connect to
+                  <select required value={form.connectedTo} onChange={(event) => setForm({ ...form, connectedTo: event.target.value })}>
+                    <option value="">Choose a person</option>
+                    {people.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
+
+            <div className="form-two">
+              <label>
+                Display relationship
+                <input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} placeholder="e.g. Daughter" />
+              </label>
+              <label>
+                Birth date
+                <input type="date" value={form.birth} onChange={(event) => setForm({ ...form, birth: event.target.value })} />
+              </label>
+            </div>
+
+            <label>
+              Photo
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setForm({ ...form, photo: event.target.files?.[0] || null })} />
+            </label>
+
+            <label>
+              Short description
+              <textarea value={form.bio} onChange={(event) => setForm({ ...form, bio: event.target.value })} rows={4} />
+            </label>
+
+            {error && <p className="tree-form-error">{error}</p>}
+            <div className="modal-actions">
+              <button type="button" onClick={() => setShowAdd(false)} disabled={saving}>Cancel</button>
+              <button className="primary" type="submit" disabled={saving}>{saving ? "Adding…" : "Add to the tree"}</button>
+            </div>
+          </form>
         </div>
-      </main>
-
-      {selected && <aside className="member-profile-panel">
-        <button className="close-profile" onClick={()=>setSelected(null)}>×</button>
-        <div className="profile-image">{selected.photo_url || selected.avatar_url ? <img src={selected.photo_url || selected.avatar_url} alt={selected.full_name}/> : <div className="profile-placeholder">{initials(selected.full_name)}</div>}</div>
-        <div className="profile-heading"><span className="profile-kicker">{selected.relationship || "Family member"}</span><h2>{selected.full_name || "Family member"}</h2>{selected.birth_date && <span>Born {date(selected.birth_date)}</span>}</div>
-        <div className="profile-actions"><button onClick={()=>setShowAdd(true)}>＋ Add relative</button><button onClick={()=>setMode("explore")}>⌘ Explore branch</button></div>
-        <div className="profile-details">{selected.location && <div><span>From</span><strong>{selected.location}</strong></div>}{selected.death_date && <div><span>Died</span><strong>{date(selected.death_date)}</strong></div>}</div>
-        <section className="profile-section"><h3>About</h3><p>{selected.bio || "Their story can live here — alongside photographs, family stories, audio memories and milestones."}</p></section>
-        <section className="profile-section"><h3>Family</h3><div className="related-list">{parents.map(p=><button key={p.id} onClick={()=>setSelected(p)}>Parent · {p.full_name}</button>)}{spouse && <button onClick={()=>setSelected(spouse)}>Partner · {spouse.full_name}</button>}{siblings.map(p=><button key={p.id} onClick={()=>setSelected(p)}>Sibling · {p.full_name}</button>)}{children.map(p=><button key={p.id} onClick={()=>setSelected(p)}>Child · {p.full_name}</button>)}</div></section>
-        <div className="profile-links"><button>📸 Memories</button><button>📖 Stories</button><button>🎙️ Audio</button><button>✦ Milestones</button></div>
-      </aside>}
+      )}
     </div>
-
-    {showAdd && <div className="tree-modal-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setShowAdd(false)}>
-      <form className="tree-add-modal" onSubmit={addPerson}>
-        <button type="button" className="close-profile" onClick={()=>setShowAdd(false)}>×</button>
-        <span className="eyebrow">GROW THE FAMILY TREE</span><h2>Add a family member</h2><p className="modal-subtitle">Choose the relationship. The tree calculates the generation and makes room automatically.</p>
-        <label>Name<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Full name"/></label>
-        <div className="form-two"><label>Relationship<select value={form.relationship} onChange={e=>setForm({...form,relationship:e.target.value})}><option value="child">Child</option><option value="parent">Parent</option><option value="sibling">Sibling</option><option value="spouse">Spouse / partner</option></select></label><label>Connected to<select value={form.connectedTo} onChange={e=>setForm({...form,connectedTo:e.target.value})}>{people.map(p=><option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label></div>
-        <div className="form-two"><label>Display role<input value={form.role} onChange={e=>setForm({...form,role:e.target.value})} placeholder="e.g. Daughter"/></label><label>Birth date<input type="date" value={form.birth} onChange={e=>setForm({...form,birth:e.target.value})}/></label></div>
-        <label>Photo URL<input value={form.photo} onChange={e=>setForm({...form,photo:e.target.value})} placeholder="Paste a photo URL for now"/></label>
-        <label>Short description<textarea value={form.bio} onChange={e=>setForm({...form,bio:e.target.value})} placeholder="A few words about them..."/></label>
-        <div className="modal-actions"><button type="button" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary" type="submit">Add to the tree</button></div>
-      </form>
-    </div>}
-  </div>;
+  );
 }

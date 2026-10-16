@@ -1,165 +1,76 @@
--- Family Archive v2: people, relationships and private profile photos.
--- Run this in Supabase SQL Editor after the existing family_members table exists.
+-- Migration: 002_family_tree_v2.sql
+-- Adds family_people and family_relationships per README
 
-create extension if not exists pgcrypto;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-create or replace function public.is_approved_family_member()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.family_members fm
-    where fm.user_id = auth.uid()
-      and fm.status = 'approved'
-  );
-$$;
-
-grant execute on function public.is_approved_family_member() to authenticated;
-
-create table if not exists public.family_people (
-  id uuid primary key default gen_random_uuid(),
-  full_name text not null,
+CREATE TABLE IF NOT EXISTS public.family_people (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name text,
   preferred_name text,
+  relationship text,
+  bio text,
   birth_date date,
   death_date date,
-  location text,
-  relationship_label text,
-  bio text,
+  generation integer,
+  parent_id uuid,
+  spouse_id uuid,
   photo_path text,
-  created_by uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  photo_url text,
+  avatar_url text,
+  location text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz
 );
 
-create table if not exists public.family_relationships (
-  id uuid primary key default gen_random_uuid(),
-  person_id uuid not null references public.family_people(id) on delete cascade,
-  related_person_id uuid not null references public.family_people(id) on delete cascade,
-  relationship_type text not null check (
-    relationship_type in ('parent', 'child', 'spouse', 'sibling')
-  ),
-  created_by uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now(),
-  unique (person_id, related_person_id, relationship_type),
-  check (person_id <> related_person_id)
+CREATE INDEX IF NOT EXISTS idx_family_people_parent_id ON public.family_people(parent_id);
+CREATE INDEX IF NOT EXISTS idx_family_people_spouse_id ON public.family_people(spouse_id);
+
+CREATE TABLE IF NOT EXISTS public.family_relationships (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  person_id uuid NOT NULL,
+  related_person_id uuid NOT NULL,
+  relationship_type text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
 );
 
-create index if not exists family_people_created_at_idx
-  on public.family_people(created_at desc);
+CREATE INDEX IF NOT EXISTS idx_family_relationships_person_id ON public.family_relationships(person_id);
+CREATE INDEX IF NOT EXISTS idx_family_relationships_related_person_id ON public.family_relationships(related_person_id);
 
-create index if not exists family_relationships_person_idx
-  on public.family_relationships(person_id);
+-- Note: RLS policies are intentionally omitted by this migration. Apply RLS policies in the Supabase dashboard as appropriate.
+-- Recommended cautious RLS policy templates (review and adapt before applying):
 
-create index if not exists family_relationships_related_idx
-  on public.family_relationships(related_person_id);
+-- Enable RLS on family_people and family_relationships
+-- ALTER TABLE public.family_people ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.family_relationships ENABLE ROW LEVEL SECURITY;
 
-create or replace function public.touch_family_people_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
+-- Example policy: allow row owners (creator) to SELECT/INSERT/UPDATE/DELETE their records
+-- Replace `created_by` with the appropriate ownership column if different.
+-- CREATE POLICY "family_people_owner_crud" ON public.family_people
+--   FOR ALL
+--   USING (created_by = auth.uid())
+--   WITH CHECK (created_by = auth.uid());
 
-drop trigger if exists family_people_updated_at on public.family_people;
-create trigger family_people_updated_at
-before update on public.family_people
-for each row execute function public.touch_family_people_updated_at();
+-- CREATE POLICY "family_relationships_owner_crud" ON public.family_relationships
+--   FOR ALL
+--   USING (created_by = auth.uid())
+--   WITH CHECK (created_by = auth.uid());
 
-alter table public.family_people enable row level security;
-alter table public.family_relationships enable row level security;
+-- Example more permissive read policy for family members of the same family (placeholder):
+-- This template assumes you have a `family_members` or equivalent table linking users to families.
+-- Replace the EXISTS subquery with your project's membership check.
+-- CREATE POLICY "family_people_select_family" ON public.family_people
+--   FOR SELECT
+--   USING (
+--     created_by = auth.uid()
+--     OR EXISTS (
+--       SELECT 1 FROM public.family_members fm
+--       WHERE fm.user_id = auth.uid()
+--       -- and fm.family_id = public.family_people.family_id  -- if applicable
+--     )
+--   );
 
-drop policy if exists "approved family can view people" on public.family_people;
-create policy "approved family can view people"
-on public.family_people
-for select to authenticated
-using (public.is_approved_family_member());
-
-drop policy if exists "approved family can add people" on public.family_people;
-create policy "approved family can add people"
-on public.family_people
-for insert to authenticated
-with check (
-  public.is_approved_family_member()
-  and created_by = auth.uid()
-);
-
-drop policy if exists "creators can update people" on public.family_people;
-create policy "creators can update people"
-on public.family_people
-for update to authenticated
-using (public.is_approved_family_member())
-with check (public.is_approved_family_member());
-
-drop policy if exists "approved family can view relationships" on public.family_relationships;
-create policy "approved family can view relationships"
-on public.family_relationships
-for select to authenticated
-using (public.is_approved_family_member());
-
-drop policy if exists "approved family can add relationships" on public.family_relationships;
-create policy "approved family can add relationships"
-on public.family_relationships
-for insert to authenticated
-with check (
-  public.is_approved_family_member()
-  and created_by = auth.uid()
-);
-
-drop policy if exists "approved family can update relationships" on public.family_relationships;
-create policy "approved family can update relationships"
-on public.family_relationships
-for update to authenticated
-using (public.is_approved_family_member())
-with check (public.is_approved_family_member());
-
-drop policy if exists "approved family can delete relationships" on public.family_relationships;
-create policy "approved family can delete relationships"
-on public.family_relationships
-for delete to authenticated
-using (public.is_approved_family_member());
-
--- Reuse the private family-media bucket for profile photos.
-insert into storage.buckets (id, name, public)
-values ('family-media', 'family-media', false)
-on conflict (id) do update set public = false;
-
-drop policy if exists "approved family can read family media" on storage.objects;
-create policy "approved family can read family media"
-on storage.objects
-for select to authenticated
-using (
-  bucket_id = 'family-media'
-  and public.is_approved_family_member()
-);
-
-drop policy if exists "approved family can upload family media" on storage.objects;
-create policy "approved family can upload family media"
-on storage.objects
-for insert to authenticated
-with check (
-  bucket_id = 'family-media'
-  and public.is_approved_family_member()
-);
-
-drop policy if exists "approved family can update family media" on storage.objects;
-create policy "approved family can update family media"
-on storage.objects
-for update to authenticated
-using (
-  bucket_id = 'family-media'
-  and public.is_approved_family_member()
-)
-with check (
-  bucket_id = 'family-media'
-  and public.is_approved_family_member()
-);
-
-comment on table public.family_people is 'Human profiles displayed in the interactive family tree.';
-comment on table public.family_relationships is 'Explicit relationships used to render the family tree.';
+-- Notes:
+-- 1) Do NOT enable broad public access. Review each POLICY before running it in your DB.
+-- 2) Apply these commands in Supabase SQL editor or include in a migration pipeline after review.

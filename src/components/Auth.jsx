@@ -1,48 +1,83 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import "./Auth.css";
+
+function PasswordField({ value, onChange, label = "Password", autoComplete }) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div className="form-group password-field">
+      <label htmlFor={`password-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+        {label}
+      </label>
+      <div className="password-input-wrap">
+        <input
+          id={`password-${label.toLowerCase().replace(/\s+/g, "-")}`}
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={onChange}
+          placeholder="At least 6 characters"
+          minLength={6}
+          autoComplete={autoComplete}
+          required
+        />
+        <button
+          type="button"
+          className="password-toggle"
+          onClick={() => setVisible((current) => !current)}
+          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          aria-pressed={visible}
+        >
+          {visible ? "◉" : "◌"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Auth() {
-  const [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    [name, setName] = useState(""),
-    [signup, setSignup] = useState(false),
-    [loading, setLoading] = useState(false),
-    [message, setMessage] = useState(""),
-    [type, setType] = useState("");
-  async function submit(e) {
-    e.preventDefault();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [signup, setSignup] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState("");
+
+  async function submit(event) {
+    event.preventDefault();
     setLoading(true);
     setMessage("");
-    if (signup) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name } },
-      });
-      if (error) {
-        setMessage(error.message);
-        setType("error");
-      } else {
+
+    try {
+      if (signup) {
+        const { error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { data: { full_name: name.trim() } },
+        });
+        if (error) throw error;
         setMessage(
-          `Request received. Check ${email} for a confirmation link if required.`,
+          `Request received. Check ${email.trim()} for a confirmation link if required.`,
         );
         setType("success");
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) {
-        setMessage(error.message);
-        setType("error");
       } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) throw error;
         setMessage("Signing you in…");
         setType("success");
       }
+    } catch (error) {
+      setMessage(error?.message || "Authentication failed. Please try again.");
+      setType("error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
+
   return (
     <main className="auth-screen">
       <section className="auth-card auth-form-card">
@@ -57,36 +92,34 @@ export default function Auth() {
         <form onSubmit={submit}>
           {signup && (
             <div className="form-group">
-              <label>Full name</label>
+              <label htmlFor="full-name">Full name</label>
               <input
+                id="full-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(event) => setName(event.target.value)}
                 placeholder="e.g. Jessica"
+                autoComplete="name"
                 required
               />
             </div>
           )}
           <div className="form-group">
-            <label>Email address</label>
+            <label htmlFor="email">Email address</label>
             <input
+              id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="you@example.com"
+              autoComplete="email"
               required
             />
           </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              minLength={6}
-              required
-            />
-          </div>
+          <PasswordField
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete={signup ? "new-password" : "current-password"}
+          />
           {message && <div className={`auth-message ${type}`}>{message}</div>}
           <button className="btn btn-primary auth-submit" disabled={loading}>
             {loading ? "Please wait…" : signup ? "Request access" : "Sign in"}
@@ -95,8 +128,9 @@ export default function Auth() {
         <div className="auth-switch">
           <span>{signup ? "Already have access?" : "New to the archive?"}</span>
           <button
+            type="button"
             onClick={() => {
-              setSignup(!signup);
+              setSignup((current) => !current);
               setMessage("");
             }}
           >

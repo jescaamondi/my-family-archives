@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../supabaseClient";
+import { resolveMediaUrl } from "../../lib/storage";
 import Lightbox from "../Lightbox/Lightbox";
 import "./Home.css";
 
-export default function Home({ memories = [], reminders = [], milestones = [], userName = "Family" }) {
+export default function Home({
+  memories = [],
+  reminders = [],
+  milestones = [],
+  userName = "Family",
+}) {
   const [lightbox, setLightbox] = useState(null);
   const [mediaUrls, setMediaUrls] = useState({});
 
@@ -22,21 +27,8 @@ export default function Home({ memories = [], reminders = [], milestones = [], u
 
   const stories = memories.filter((memory) => memory.category === "story");
 
-  const milestones = memories.filter((memory) => memory.is_milestone);
-
-  const oldest = memories.reduce((oldestDate, memory) => {
-    if (!memory?.date) return oldestDate;
-
-    if (!oldestDate || new Date(memory.date) < new Date(oldestDate)) {
-      return memory.date;
-    }
-
-    return oldestDate;
-  }, null);
-
-  const years = oldest
-    ? Math.max(1, new Date().getFullYear() - new Date(oldest).getFullYear() + 1)
-    : 0;
+  const ARCHIVE_ESTABLISHED_YEAR = 1990;
+  const years = Math.max(0, new Date().getFullYear() - ARCHIVE_ESTABLISHED_YEAR);
   useEffect(() => {
     let cancelled = false;
 
@@ -50,37 +42,11 @@ export default function Home({ memories = [], reminders = [], milestones = [], u
 
         // If media_url is already a complete URL,
         // use it directly.
-        if (value.startsWith("http://") || value.startsWith("https://")) {
-          results[memory.id] = value;
-          continue;
-        }
-
-        /*
-         * Otherwise it is a storage path.
-         *
-         * Try family-media first.
-         */
-        let found = false;
-
-        for (const bucket of ["family-media", "memories"]) {
-          const { data, error } = await supabase.storage
-            .from(bucket)
-            .createSignedUrl(value, 60 * 60);
-
-          if (!error && data?.signedUrl) {
-            results[memory.id] = data.signedUrl;
-            found = true;
-            break;
-          }
-        }
-
-        if (!found) {
-          console.error(
-            "Could not find image in either bucket:",
-            memory.title,
-            value,
-          );
-
+        try {
+          const url = await resolveMediaUrl(value);
+          results[memory.id] = url;
+        } catch (e) {
+          console.error("Could not resolve media for memory", memory.id, e);
           results[memory.id] = null;
         }
       }
@@ -99,10 +65,6 @@ export default function Home({ memories = [], reminders = [], milestones = [], u
 
   function getMediaUrl(memory) {
     return mediaUrls[memory?.id] || null;
-
-    if (!memory?.media_url) return null;
-
-    return memory.media_url;
   }
 
   function openMemory(memory) {
@@ -326,21 +288,76 @@ export default function Home({ memories = [], reminders = [], milestones = [], u
       <section className="home-dashboard-grid">
         <div className="home-dashboard-card">
           <span className="eyebrow">UP NEXT</span>
-          <h2>Good to see you, {userName.split(' ')[0]}.</h2>
-          <p>Your family archive is growing. Here are the things worth keeping close today.</p>
-          {reminders.slice(0,3).map(reminder => <div className="home-reminder-row" key={reminder.id}><span>⏰</span><div><strong>{reminder.title || 'Family reminder'}</strong><small>{reminder.remind_at ? new Date(reminder.remind_at).toLocaleDateString() : 'Upcoming'}</small></div></div>)}
-          {!reminders.length && <div className="home-soft-note">No reminders waiting. Enjoy the archive.</div>}
+          <h2>Good to see you, {userName.split(" ")[0]}.</h2>
+          <p>
+            Your family archive is growing. Here are the things worth keeping
+            close today.
+          </p>
+          {reminders.slice(0, 3).map((reminder) => (
+            <div className="home-reminder-row" key={reminder.id}>
+              <span>⏰</span>
+              <div>
+                <strong>{reminder.title || "Family reminder"}</strong>
+                <small>
+                  {reminder.remind_at
+                    ? new Date(reminder.remind_at).toLocaleDateString()
+                    : "Upcoming"}
+                </small>
+              </div>
+            </div>
+          ))}
+          {!reminders.length && (
+            <div className="home-soft-note">
+              No reminders waiting. Enjoy the archive.
+            </div>
+          )}
         </div>
         <div className="home-dashboard-card home-on-this-day">
           <span className="eyebrow">ON THIS DAY</span>
           <h2>A moment worth remembering.</h2>
-          {(() => { const today = new Date(); const match = memories.find(m => m.date && new Date(m.date).getMonth() === today.getMonth() && new Date(m.date).getDate() === today.getDate()); return match ? <><strong>{match.title || 'A family memory'}</strong><p>{match.description || 'A memory from this day in another year.'}</p><span>{formatDate(match.date)}</span></> : <p>No memory from this date yet. One day, this space will hold one.</p> })()}
+          {(() => {
+            const today = new Date();
+            const match = memories.find(
+              (m) =>
+                m.date &&
+                new Date(m.date).getMonth() === today.getMonth() &&
+                new Date(m.date).getDate() === today.getDate(),
+            );
+            return match ? (
+              <>
+                <strong>{match.title || "A family memory"}</strong>
+                <p>
+                  {match.description ||
+                    "A memory from this day in another year."}
+                </p>
+                <span>{formatDate(match.date)}</span>
+              </>
+            ) : (
+              <p>
+                No memory from this date yet. One day, this space will hold one.
+              </p>
+            );
+          })()}
         </div>
         <div className="home-dashboard-card">
           <span className="eyebrow">FAMILY FUTURE</span>
           <h2>Dreams in motion</h2>
-          <div className="home-goal-list">{milestones.filter(m=>m.status!=='achieved').slice(0,3).map(m=><div key={m.id}><span>✦</span><strong>{m.title}</strong></div>)}</div>
-          {!milestones.filter(m=>m.status!=='achieved').length && <div className="home-soft-note">No active goals yet. The future is waiting.</div>}
+          <div className="home-goal-list">
+            {milestones
+              .filter((m) => m.status !== "achieved")
+              .slice(0, 3)
+              .map((m) => (
+                <div key={m.id}>
+                  <span>✦</span>
+                  <strong>{m.title}</strong>
+                </div>
+              ))}
+          </div>
+          {!milestones.filter((m) => m.status !== "achieved").length && (
+            <div className="home-soft-note">
+              No active goals yet. The future is waiting.
+            </div>
+          )}
         </div>
       </section>
 

@@ -1,43 +1,64 @@
-# Family Archive — final UI baseline
+# Family Archive
 
-This version is the clean UI baseline for the redesign.
+Private family archive built with React, Vite and Supabase.
 
-## Structure
+## Requirements
 
-Each feature owns its stylesheet:
+- Node.js 20+
+- A Supabase project with the required tables, storage bucket and RLS policies
+- A VAPID public key if browser push notifications are enabled
 
-- `components/AddMemory/AddMemory.jsx` + `AddMemory.css`
-- `components/Auth.jsx` + `Auth.css`
-- `components/FamilyMembers/FamilyMembers.jsx` + `FamilyMembers.css`
-- `components/FamilyTree/FamilyTree.jsx` + `FamilyTree.css`
-- `components/Gallery/Gallery.jsx` + `Gallery.css`
-- `components/Home/Home.jsx` + `Home.css`
-- `components/Lightbox/Lightbox.jsx` + `Lightbox.css`
-- `components/Milestones/Milestones.jsx` + `Milestones.css`
-- `components/Stories/Stories.jsx` + `Stories.css`
-- `components/Timeline/Timeline.jsx` + `Timeline.css`
+## Local setup
 
-Global layout tokens live in `src/styles/` and `App.css` only imports them.
+1. Install dependencies:
 
-## Important fixes included
+```bash
+npm install
+```
 
-- Gallery category filter typo fixed.
-- Timeline component syntax/structure cleaned up.
-- Stories now imports its own CSS.
-- Family Tree now receives approved family members from `App.jsx`.
-- Lightbox supports image and video memories.
-- Mobile navigation becomes a horizontal navigation bar.
-- Add Memory keeps the existing Supabase upload/insert behavior.
-- Family Members keeps the existing approval/admin behavior.
+2. Copy `.env.example` to `.env.local` and provide the frontend values:
 
-## Gallery v15
-- Drag-and-drop uploads are supported in the Gallery upload dialog.
-- Family-created albums can optionally have a custom photo cover.
-- Direct uploads still appear in All memories even when no album is selected.
-- Apply `supabase/migrations/005_gallery_album_covers.sql` after the previous migrations.
-\n## Story audio memories\nStories now support an optional private audio memory. Run `supabase/migrations/006_story_audio_memories.sql`, then stories can upload and play voice recordings from the existing `family-media` bucket.\n
-## Scheduled milestone push reminders
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_VAPID_PUBLIC_KEY=
+```
 
-v24 adds Web Push delivery for milestone reminders, so reminders can arrive even when Family Archive is closed. See `supabase/functions/send-milestone-reminders/README.md` and migration `010_milestone_scheduled_push_reminders.sql`.
+Never put service-role keys, Supabase secret keys, VAPID private keys or cron secrets in `.env.local` for the frontend.
 
-Set the frontend `VITE_VAPID_PUBLIC_KEY` to the public VAPID key, deploy the Edge Function with the matching private key, and configure the Supabase cron job described in the function README.
+3. Run the app:
+
+```bash
+npm run dev
+```
+
+4. Verify the production build:
+
+```bash
+npm run lint
+npm run build
+```
+
+## Supabase
+
+SQL migrations are in `supabase/migrations/`.
+
+The private `family-media` storage bucket is used for family photos, profile photos, stories and milestone media. Private objects should be stored as paths and displayed through signed URLs.
+
+The scheduled reminder Edge Function is in:
+
+`supabase/functions/send-milestone-reminders/`
+
+Its private VAPID credentials and scheduler secret must remain in Supabase Edge Function secrets.
+
+## Deployment
+
+Build the frontend with:
+
+```bash
+npm run build
+```
+
+Deploy the generated `dist/` directory to your chosen static host, or configure the host to run `npm run build` and publish `dist`.
+
+Configure the three `VITE_*` environment variables in the hosting provider before building.
