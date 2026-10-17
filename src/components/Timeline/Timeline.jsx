@@ -1,5 +1,11 @@
 import "./Timeline.css";
-export default function Timeline({ memories = [] }) {
+export default function Timeline({
+  memories = [],
+  loading = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}) {
   const items = [...memories].sort(
     (a, b) => new Date(b?.date || 0) - new Date(a?.date || 0),
   );
@@ -12,7 +18,19 @@ export default function Timeline({ memories = [] }) {
           The big moments, the small moments, and everything between.
         </p>
       </div>
-      {!items.length ? (
+      {loading ? (
+        <div
+          className="timeline"
+          aria-busy="true"
+          aria-label="Loading memories"
+        >
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="timeline-item">
+              <div className="timeline-skeleton" />
+            </div>
+          ))}
+        </div>
+      ) : !items.length ? (
         <div className="empty-state">
           <div className="empty-icon">◷</div>
           <h3>No timeline entries yet</h3>
@@ -46,6 +64,18 @@ export default function Timeline({ memories = [] }) {
               </div>
             </article>
           ))}
+          {hasMore && (
+            <div className="load-more">
+              <button
+                type="button"
+                className="load-more-button"
+                onClick={onLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "Loading…" : "Load more memories"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

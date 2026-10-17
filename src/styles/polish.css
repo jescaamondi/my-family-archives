@@ -362,3 +362,78 @@ select:focus-visible {
     width: 100%;
   }
 }
+
+.gallery-skeleton,
+.timeline-skeleton {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper-deep);
+  pointer-events: none;
+}
+
+.gallery-skeleton {
+  min-height: 280px;
+  border-radius: var(--radius);
+}
+
+.timeline-skeleton {
+  height: 140px;
+  border-radius: 18px;
+}
+
+.gallery-skeleton::after,
+.timeline-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.load-more-button {
+  padding: 12px 26px;
+  border: 1px solid var(--line-dark);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease);
+}
+
+.load-more-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.load-more-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-skeleton::after,
+  .timeline-skeleton::after {
+    animation: none;
+  }
+}
