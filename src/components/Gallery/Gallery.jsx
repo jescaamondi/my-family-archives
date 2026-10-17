@@ -4,7 +4,15 @@ import "./Gallery.css";
 import { resolveMediaUrl } from "../../lib/storage";
 import { useToasts } from "../../lib/useToasts";
 
-export default function Gallery({ memories = [], people = [], onRefresh }) {
+export default function Gallery({
+  memories = [],
+  people = [],
+  onRefresh,
+  loading = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}) {
   function mapStorageError(err) {
     const msg = (err && (err.message || err.msg)) || String(err || "");
     if (/row-level security|violates row-level security/i.test(msg))
@@ -271,7 +279,9 @@ export default function Gallery({ memories = [], people = [], onRefresh }) {
       setError(msg);
       try {
         addToast({ title: "Upload failed", message: msg, type: "error" });
-      } catch { /* Toasts are optional UI feedback. */ }
+      } catch {
+        /* Toasts are optional UI feedback. */
+      }
     } finally {
       setUploading(false);
     }
@@ -334,7 +344,17 @@ export default function Gallery({ memories = [], people = [], onRefresh }) {
         </div>
       </div>
 
-      {mediaMemories.length === 0 ? (
+      {loading ? (
+        <div
+          className="gallery-grid"
+          aria-busy="true"
+          aria-label="Loading photos"
+        >
+          {Array.from({ length: 9 }).map((_, index) => (
+            <div key={index} className="gallery-card gallery-skeleton" />
+          ))}
+        </div>
+      ) : mediaMemories.length === 0 ? (
         <div className="gallery-empty">
           <div className="gallery-empty-icon">⌁</div>
 
@@ -549,6 +569,19 @@ export default function Gallery({ memories = [], people = [], onRefresh }) {
                 </button>
               ))}
             </div>
+
+            {hasMore && (
+              <div className="load-more">
+                <button
+                  type="button"
+                  className="load-more-button"
+                  onClick={onLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "Loading…" : "Load more memories"}
+                </button>
+              </div>
+            )}
           </section>
         </>
       )}

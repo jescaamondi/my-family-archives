@@ -25,3 +25,5 @@ dist-ssr
 
 # Local AI assistant instructions (kept on this machine only)
 .github/skills/
+
+.kilo/

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { resolveMediaUrl } from "./lib/storage";
 
@@ -17,6 +17,35 @@ import Profile from "./components/Profile/Profile";
 import { ToastProvider } from "./lib/toast";
 
 import "./App.css";
+
+const MEMORIES_PAGE_SIZE = 24;
+
+async function hydrateMemories(rows) {
+  return Promise.all(
+    (rows || []).map(async (memory) => {
+      if (!memory.media_url) {
+        return memory;
+      }
+      try {
+        return {
+          ...memory,
+          media_url: await resolveMediaUrl(memory.media_url),
+        };
+      } catch (e) {
+        console.error("Could not resolve media url for memory media", e);
+        return memory;
+      }
+    }),
+  );
+}
+
+function memoriesQuery() {
+  return supabase
+    .from("memories")
+    .select("*")
+    .order("date", { ascending: false })
+    .order("id", { ascending: false });
+}
 
 /* =========================================================
    NAVIGATION
@@ -40,11 +69,17 @@ export default function App() {
   const [session, setSession] = useState(null);
 
   const [screen, setScreen] = useState(() => {
-    const requestedScreen = new URLSearchParams(window.location.search).get("screen");
+    const requestedScreen = new URLSearchParams(window.location.search).get(
+      "screen",
+    );
     return requestedScreen || "home";
   });
 
   const [memories, setMemories] = useState([]);
+  const [memoriesLoading, setMemoriesLoading] = useState(true);
+  const [loadingMoreMemories, setLoadingMoreMemories] = useState(false);
+  const [hasMoreMemories, setHasMoreMemories] = useState(false);
+  const memoriesLoadedRef = useRef(MEMORIES_PAGE_SIZE);
 
   const [members, setMembers] = useState([]);
   const [familyPeople, setFamilyPeople] = useState([]);
@@ -298,34 +333,48 @@ export default function App() {
   ======================================================= */
 
   async function fetchMemories() {
-    const { data, error } = await supabase
-      .from("memories")
-      .select("*")
-      .order("date", {
-        ascending: false,
-      });
+    const count = Math.max(memoriesLoadedRef.current, MEMORIES_PAGE_SIZE);
+    const { data, error } = await memoriesQuery().range(0, count - 1);
 
     if (error) {
       console.error("Error fetching memories:", error);
-
+      setMemoriesLoading(false);
       return;
     }
 
-    // Hydrate signed URLs for private storage paths so thumbnails render
-    const hydrated = await Promise.all(
-      (data || []).map(async (m) => {
-        try {
-          if (m.media_url) {
-            m.media_url = await resolveMediaUrl(m.media_url);
-          }
-        } catch (e) {
-          console.error("Could not resolve media url for memory media", e);
-        }
-        return m;
-      }),
+    const hydrated = await hydrateMemories(data);
+    memoriesLoadedRef.current = count;
+    setHasMoreMemories((data || []).length === count);
+    setMemories(hydrated);
+    setMemoriesLoading(false);
+  }
+
+  async function loadMoreMemories() {
+    if (loadingMoreMemories || !hasMoreMemories) {
+      return;
+    }
+
+    setLoadingMoreMemories(true);
+    const from = memories.length;
+    const { data, error } = await memoriesQuery().range(
+      from,
+      from + MEMORIES_PAGE_SIZE - 1,
     );
 
-    setMemories(hydrated || []);
+    if (error) {
+      console.error("Error loading more memories:", error);
+      setLoadingMoreMemories(false);
+      return;
+    }
+
+    const hydrated = await hydrateMemories(data);
+    setMemories((current) => {
+      const seen = new Set(current.map((memory) => memory.id));
+      return [...current, ...hydrated.filter((memory) => !seen.has(memory.id))];
+    });
+    memoriesLoadedRef.current = from + (data || []).length;
+    setHasMoreMemories((data || []).length === MEMORIES_PAGE_SIZE);
+    setLoadingMoreMemories(false);
   }
 
   /* =======================================================
@@ -541,6 +590,8 @@ export default function App() {
       contributions: [],
     });
     setMemories([]);
+    setMemoriesLoading(true);
+    memoriesLoadedRef.current = MEMORIES_PAGE_SIZE;
     setScreen("home");
   }
 
@@ -632,13 +683,25 @@ export default function App() {
       />
     ),
 
-    timeline: <Timeline memories={memories} />,
+    timeline: (
+      <Timeline
+        memories={memories}
+        loading={memoriesLoading}
+        hasMore={hasMoreMemories}
+        loadingMore={loadingMoreMemories}
+        onLoadMore={loadMoreMemories}
+      />
+    ),
 
     gallery: (
       <Gallery
         memories={memories}
         people={familyPeople}
         onRefresh={fetchMemories}
+        loading={memoriesLoading}
+        hasMore={hasMoreMemories}
+        loadingMore={loadingMoreMemories}
+        onLoadMore={loadMoreMemories}
       />
     ),
 
